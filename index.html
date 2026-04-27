@@ -602,16 +602,17 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script src="https://js.paystack.co/v1/inline.js"></script>
 
 <script>
-const FIREBASE_CONFIG = { apiKey:"YOUR_API_KEY", authDomain:"YOUR_PROJECT.firebaseapp.com", projectId:"YOUR_PROJECT_ID", storageBucket:"YOUR_PROJECT.appspot.com", messagingSenderId:"YOUR_SENDER_ID", appId:"YOUR_APP_ID" };
-const PAYSTACK_KEY    = "pk_live_REPLACE_WITH_CLIENT_KEY";
+const FIREBASE_CONFIG = { apiKey:"AIzaSyBHj1O7hvCmS3DYbl54Q7B3rFVbyfukQlA", authDomain:"macouture-fashion.firebaseapp.com", projectId:"macouture-fashion", storageBucket:"macouture-fashion.firebasestorage.app", messagingSenderId:"502937686499", appId:"1:502937686499:web:916df3a3facc66384850d6" };
+const PAYSTACK_KEY         = "pk_live_REPLACE_WITH_CLIENT_KEY";
+const CLOUDINARY_CLOUD_NAME  = "dumatsfyt";
+const CLOUDINARY_UPLOAD_PRESET = "macouture_uploads";
 const WHATSAPP_NUMBER = "234XXXXXXXXXX";
 
 firebase.initializeApp(FIREBASE_CONFIG);
-const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage();
+const auth = firebase.auth(), db = firebase.firestore();
 let allItems = [], currentItem = null, mainFile = null, extraFiles = [];
 const IS_DEMO = FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY';
 
@@ -751,6 +752,19 @@ function onExtraPhotos(input) {
   const thumbs=extraFiles.map(f=>`<div class="extra-preview-thumb"><img src="${URL.createObjectURL(f)}" alt=""></div>`).join('');
   preview.innerHTML=thumbs+`<div class="extra-preview-add" onclick="document.getElementById('extra-file').click()">+</div>`;
 }
+async function uploadToCloudinary(file, onProgress) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload');
+    xhr.upload.onprogress = e => { if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100)); };
+    xhr.onload = () => { const res=JSON.parse(xhr.responseText); if(xhr.status===200) resolve(res.secure_url); else reject(new Error((res.error&&res.error.message)||'Upload failed')); };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.send(formData);
+  });
+}
 async function doUpload() {
   const name=document.getElementById('up-name').value.trim(), price=document.getElementById('up-price').value.trim(), desc=document.getElementById('up-desc').value.trim();
   if (!name||!price) { toast('Item name and price are required.','error'); return; }
@@ -758,17 +772,34 @@ async function doUpload() {
   const btn=document.getElementById('up-btn'), progress=document.getElementById('up-progress'), fill=document.getElementById('up-progress-fill'), txt=document.getElementById('up-progress-text');
   btn.disabled=true; btn.innerHTML='<div class="loader loader-sm" style="margin:0 auto"></div>'; progress.classList.add('show');
   try {
-    const itemId='item_'+Date.now();
-    txt.textContent='Uploading main photo…'; fill.style.width='15%';
-    const mainRef=storage.ref(`items/${itemId}/main`); await mainRef.put(mainFile); const mainURL=await mainRef.getDownloadURL(); fill.style.width='55%';
+    txt.textContent='Uploading main photo...'; fill.style.width='10%';
+    const mainURL = await uploadToCloudinary(mainFile, function(p){ fill.style.width=(10+p*0.45)+'%'; });
+    fill.style.width='55%';
     let extraURLs=[];
-    if (extraFiles.length) { txt.textContent='Uploading extra photos…'; for(let i=0;i<extraFiles.length;i++){const ref=storage.ref(`items/${itemId}/extra_${i}`);await ref.put(extraFiles[i]);extraURLs.push(await ref.getDownloadURL());fill.style.width=`${55+((i+1)/extraFiles.length)*25}%`;} }
-    txt.textContent='Saving…'; fill.style.width='90%';
-    await db.collection('items').add({name,price:Number(price),description:desc,mainPhoto:mainURL,extraPhotos:extraURLs,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-    fill.style.width='100%'; toast('Item published successfully ✓');
-    setTimeout(()=>{ document.getElementById('up-name').value=''; document.getElementById('up-price').value=''; document.getElementById('up-desc').value=''; document.getElementById('main-drop').innerHTML='<div class="upload-placeholder"><span>📷</span><p>Click to upload</p></div>'; document.getElementById('extra-preview').innerHTML='<div class="extra-preview-add" onclick="document.getElementById(\'extra-file\').click()">+</div>'; mainFile=null; extraFiles=[]; btn.textContent='Publish Item'; btn.disabled=false; fill.style.width='0'; progress.classList.remove('show'); },1200);
+    if (extraFiles.length) {
+      txt.textContent='Uploading extra photos...';
+      for(let i=0;i<extraFiles.length;i++){
+        const url=await uploadToCloudinary(extraFiles[i]);
+        extraURLs.push(url);
+        fill.style.width=(55+((i+1)/extraFiles.length*25))+'%';
+      }
+    }
+    txt.textContent='Saving...'; fill.style.width='90%';
+    await db.collection('items').add({name:name,price:Number(price),description:desc,mainPhoto:mainURL,extraPhotos:extraURLs,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    fill.style.width='100%'; toast('Item published successfully');
+    setTimeout(function(){
+      document.getElementById('up-name').value='';
+      document.getElementById('up-price').value='';
+      document.getElementById('up-desc').value='';
+      document.getElementById('main-drop').innerHTML='<div class="upload-placeholder"><span>📷</span><p>Click to upload</p></div>';
+      document.getElementById('extra-preview').innerHTML='<div class="extra-preview-add" onclick="document.getElementById('extra-file').click()">+</div>';
+      mainFile=null; extraFiles=[];
+      btn.textContent='Publish Item'; btn.disabled=false;
+      fill.style.width='0'; progress.classList.remove('show');
+    },1200);
   } catch(e) { toast('Upload failed: '+e.message,'error'); btn.textContent='Publish Item'; btn.disabled=false; progress.classList.remove('show'); }
 }
+
 async function loadAdminItems() {
   const g=document.getElementById('admin-grid'); g.innerHTML='<div class="full-loader"><div class="loader"></div></div>';
   try {
