@@ -611,8 +611,14 @@ const CLOUDINARY_CLOUD_NAME  = "dumatsfyt";
 const CLOUDINARY_UPLOAD_PRESET = "macouture_uploads";
 const WHATSAPP_NUMBER = "234XXXXXXXXXX";
 
-firebase.initializeApp(FIREBASE_CONFIG);
-const auth = firebase.auth(), db = firebase.firestore();
+let auth, db;
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  auth = firebase.auth();
+  db   = firebase.firestore();
+} catch(e) {
+  console.error('Firebase init error:', e);
+}
 let allItems = [], currentItem = null, mainFile = null, extraFiles = [];
 const IS_DEMO = FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY';
 
@@ -830,9 +836,19 @@ async function loadOrders() {
   } catch(e){wrap.innerHTML='<p style="color:var(--error);font-size:.88rem">Could not load orders.</p>';}
 }
 
-document.getElementById('whatsapp-link').href=`https://wa.me/${WHATSAPP_NUMBER}`;
-auth.onAuthStateChanged(user=>{ if(!user&&document.getElementById('page-admin-dashboard').classList.contains('active'))showPage('admin-login'); });
-showPage('home');
+try {
+  document.getElementById('whatsapp-link').href = 'https://wa.me/' + WHATSAPP_NUMBER;
+} catch(e) {}
+try {
+  if (auth) {
+    auth.onAuthStateChanged(function(user) {
+      if (!user && document.getElementById('page-admin-dashboard').classList.contains('active')) {
+        showPage('admin-login');
+      }
+    });
+  }
+} catch(e) {}
+try { showPage('home'); } catch(e) { console.error('showPage error:', e); }
 </script>
 </body>
 </html>
