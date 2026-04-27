@@ -753,11 +753,45 @@ function onMainPhoto(input) {
   const reader=new FileReader(); reader.onload=e=>{ document.getElementById('main-drop').innerHTML=`<img src="${e.target.result}" alt="">`; }; reader.readAsDataURL(mainFile);
 }
 function onExtraPhotos(input) {
-  extraFiles=Array.from(input.files);
-  const preview=document.getElementById('extra-preview');
-  const thumbs=extraFiles.map(f=>`<div class="extra-preview-thumb"><img src="${URL.createObjectURL(f)}" alt=""></div>`).join('');
-  preview.innerHTML=thumbs+`<div class="extra-preview-add" onclick="document.getElementById('extra-file').click()">+</div>`;
+  extraFiles = Array.from(input.files);
+  var preview = document.getElementById('extra-preview');
+  preview.innerHTML = '';
+  extraFiles.forEach(function(f) {
+    var thumb = document.createElement('div');
+    thumb.className = 'extra-preview-thumb';
+    var img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    thumb.appendChild(img);
+    preview.appendChild(thumb);
+  });
+  var addBtn = document.createElement('div');
+  addBtn.className = 'extra-preview-add';
+  addBtn.textContent = '+';
+  addBtn.onclick = function(){ document.getElementById('extra-file').click(); };
+  preview.appendChild(addBtn);
 }
+function resetUploadForm() {
+  document.getElementById('up-name').value = '';
+  document.getElementById('up-price').value = '';
+  document.getElementById('up-desc').value = '';
+  document.getElementById('main-drop').innerHTML = '<div class="upload-placeholder"><span>📷</span><p>Click to upload</p></div>';
+  var ep = document.getElementById('extra-preview');
+  ep.innerHTML = '';
+  var addBtn = document.createElement('div');
+  addBtn.className = 'extra-preview-add';
+  addBtn.textContent = '+';
+  addBtn.onclick = function(){ document.getElementById('extra-file').click(); };
+  ep.appendChild(addBtn);
+  mainFile = null;
+  extraFiles = [];
+  var btn = document.getElementById('up-btn');
+  btn.textContent = 'Publish Item';
+  btn.disabled = false;
+  var fill = document.getElementById('up-progress-fill');
+  fill.style.width = '0';
+  document.getElementById('up-progress').classList.remove('show');
+}
+
 async function uploadToCloudinary(file, onProgress) {
   const formData = new FormData();
   formData.append('file', file);
@@ -793,16 +827,7 @@ async function doUpload() {
     txt.textContent='Saving...'; fill.style.width='90%';
     await db.collection('items').add({name:name,price:Number(price),description:desc,mainPhoto:mainURL,extraPhotos:extraURLs,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
     fill.style.width='100%'; toast('Item published successfully');
-    setTimeout(function(){
-      document.getElementById('up-name').value='';
-      document.getElementById('up-price').value='';
-      document.getElementById('up-desc').value='';
-      document.getElementById('main-drop').innerHTML='<div class="upload-placeholder"><span>📷</span><p>Click to upload</p></div>';
-      document.getElementById('extra-preview').innerHTML='<div class="extra-preview-add" onclick="document.getElementById('extra-file').click()">+</div>';
-      mainFile=null; extraFiles=[];
-      btn.textContent='Publish Item'; btn.disabled=false;
-      fill.style.width='0'; progress.classList.remove('show');
-    },1200);
+    setTimeout(resetUploadForm, 1200);
   } catch(e) { toast('Upload failed: '+e.message,'error'); btn.textContent='Publish Item'; btn.disabled=false; progress.classList.remove('show'); }
 }
 
