@@ -662,25 +662,25 @@ function itemCardHTML(item) {
 
 async function loadFeatured() {
   const g = document.getElementById('home-grid');
-  if (IS_DEMO) { g.innerHTML = comingSoonHTML(); return; }
+  if (IS_DEMO || !db) { g.innerHTML = comingSoonHTML(); return; }
   g.innerHTML = '<div class="full-loader"><div class="loader"></div></div>';
   try {
     const snap = await db.collection('items').orderBy('createdAt','desc').limit(4).get();
     if (snap.empty) { g.innerHTML = comingSoonHTML(); return; }
     allItems = snap.docs.map(d=>({id:d.id,...d.data()}));
     g.innerHTML = allItems.map(itemCardHTML).join('');
-  } catch(e) { g.innerHTML = comingSoonHTML(); }
+  } catch(e) { console.error('Firestore error:', e); g.innerHTML = comingSoonHTML(); }
 }
 async function loadCollections() {
   const g = document.getElementById('coll-grid');
   document.getElementById('search-input').value = '';
-  if (IS_DEMO) { g.innerHTML = comingSoonHTML(); document.getElementById('coll-count').textContent=''; return; }
+  if (IS_DEMO || !db) { g.innerHTML = comingSoonHTML(); document.getElementById('coll-count').textContent=''; return; }
   g.innerHTML = '<div class="full-loader"><div class="loader"></div></div>';
   try {
     const snap = await db.collection('items').orderBy('createdAt','desc').get();
     allItems = snap.docs.map(d=>({id:d.id,...d.data()}));
     renderGrid(allItems);
-  } catch(e) { g.innerHTML = comingSoonHTML(); document.getElementById('coll-count').textContent=''; }
+  } catch(e) { console.error('Firestore error:', e); g.innerHTML = comingSoonHTML(); document.getElementById('coll-count').textContent=''; }
 }
 function renderGrid(items) {
   const g = document.getElementById('coll-grid'), c = document.getElementById('coll-count');
@@ -836,9 +836,13 @@ async function loadOrders() {
   } catch(e){wrap.innerHTML='<p style="color:var(--error);font-size:.88rem">Could not load orders.</p>';}
 }
 
-try {
-  document.getElementById('whatsapp-link').href = 'https://wa.me/' + WHATSAPP_NUMBER;
-} catch(e) {}
+// Set WhatsApp link
+try { document.getElementById('whatsapp-link').href = 'https://wa.me/' + WHATSAPP_NUMBER; } catch(e) {}
+
+// Show home page IMMEDIATELY — don't wait for Firebase
+try { showPage('home'); } catch(e) { console.error('Boot error:', e); }
+
+// Auth state listener
 try {
   if (auth) {
     auth.onAuthStateChanged(function(user) {
@@ -847,8 +851,7 @@ try {
       }
     });
   }
-} catch(e) {}
-try { showPage('home'); } catch(e) { console.error('showPage error:', e); }
+} catch(e) { console.error('Auth error:', e); }
 </script>
 </body>
 </html>
