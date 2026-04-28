@@ -328,7 +328,15 @@
       .checkout-wrap { grid-template-columns: 1fr; gap: 2rem; padding: 7rem 1.5rem 4rem; }
       .order-box { position: static; }
       .admin-sidebar { display: none; }
-      .admin-main { margin-left: 0; padding: 1.5rem; }
+      .admin-main { margin-left: 0; padding: 1rem; }
+      .mobile-admin-nav { display: flex; flex-direction: column; background: var(--charcoal); padding: 1rem; gap: .5rem; }
+      .mobile-admin-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+      .mobile-admin-brand { font-family: var(--fd); color: var(--warm-white); font-size: .95rem; font-weight: 700; }
+      .mobile-admin-brand span { display: block; font-size: .55rem; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); font-weight: 400; }
+      .mobile-admin-actions { display: flex; gap: .5rem; }
+      .mobile-admin-tabs { display: flex; gap: .4rem; }
+      .mobile-admin-tab { flex: 1; padding: .55rem .3rem; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; text-align: center; color: rgba(250,248,244,.5); border: 1px solid rgba(255,255,255,.1); border-radius: 2px; cursor: pointer; transition: background .2s, color .2s; }
+      .mobile-admin-tab.active { background: rgba(201,168,76,.2); color: var(--gold); border-color: rgba(201,168,76,.4); }
       .upload-grid { grid-template-columns: 1fr; }
       .admin-stats { grid-template-columns: 1fr 1fr; }
       .orders-table { font-size: .75rem; }
@@ -527,6 +535,21 @@
 <!-- ADMIN DASHBOARD -->
 <div class="page" id="page-admin-dashboard">
   <div class="admin-layout">
+    <!-- Mobile Admin Nav (shown only on mobile) -->
+    <div class="mobile-admin-nav" id="mobile-admin-nav" style="display:none">
+      <div class="mobile-admin-top">
+        <div class="mobile-admin-brand">Macouture <span>Admin Dashboard</span></div>
+        <div class="mobile-admin-actions">
+          <button onclick="showPage('home')" style="font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;padding:.45rem .8rem;background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:2px;cursor:pointer;">← Website</button>
+          <button onclick="doLogout()" style="font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;padding:.45rem .8rem;color:rgba(250,248,244,.5);border:1px solid rgba(255,255,255,.15);border-radius:2px;cursor:pointer;">Sign Out</button>
+        </div>
+      </div>
+      <div class="mobile-admin-tabs">
+        <div class="mobile-admin-tab active" id="manav-upload" onclick="switchTab('upload');updateMobileAdminNav('upload')">＋ Upload</div>
+        <div class="mobile-admin-tab" id="manav-collections" onclick="switchTab('collections');updateMobileAdminNav('collections')">◈ Collections</div>
+        <div class="mobile-admin-tab" id="manav-orders" onclick="switchTab('orders');updateMobileAdminNav('orders')">◎ Orders</div>
+      </div>
+    </div>
     <aside class="admin-sidebar">
       <p class="admin-side-brand">Macouture</p>
       <p class="admin-side-sub">Admin Dashboard</p>
@@ -643,7 +666,7 @@ function showPage(id) {
   window.scrollTo(0,0);
   if (id==='home') loadFeatured();
   if (id==='collections') loadCollections();
-  if (id==='admin-dashboard') { loadAdminItems(); loadOrders(); }
+  if (id==='admin-dashboard') { loadAdminItems(); loadOrders(); handleAdminNavVisibility(); }
 }
 function navScrollTo(sid) {
   if (!document.getElementById('page-home').classList.contains('active')) { showPage('home'); setTimeout(()=>scrollToEl(sid),350); } else scrollToEl(sid);
@@ -924,6 +947,12 @@ async function loadOrders() {
 
 // Set WhatsApp link
 try { document.getElementById('whatsapp-link').href = 'https://wa.me/' + WHATSAPP_NUMBER; } catch(e) {}
+function handleAdminNavVisibility() {
+  var mobileNav = document.getElementById('mobile-admin-nav');
+  if (!mobileNav) return;
+  mobileNav.style.display = window.innerWidth <= 900 ? 'block' : 'none';
+}
+window.addEventListener('resize', handleAdminNavVisibility);
 
 // Show home page IMMEDIATELY — don't wait for Firebase
 try { showPage('home'); } catch(e) { console.error('Boot error:', e); }
