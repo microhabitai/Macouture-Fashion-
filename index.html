@@ -327,15 +327,16 @@
       .detail-info { position: static; }
       .checkout-wrap { grid-template-columns: 1fr; gap: 2rem; padding: 7rem 1.5rem 4rem; }
       .order-box { position: static; }
-      .admin-sidebar { display: none; }
+      .admin-layout { display: block; }
+      .admin-sidebar { display: none !important; }
       .admin-main { margin-left: 0; padding: 1rem; }
-      .mobile-admin-nav { display: flex; flex-direction: column; background: var(--charcoal); padding: 1rem; gap: .5rem; }
-      .mobile-admin-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
-      .mobile-admin-brand { font-family: var(--fd); color: var(--warm-white); font-size: .95rem; font-weight: 700; }
-      .mobile-admin-brand span { display: block; font-size: .55rem; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); font-weight: 400; }
-      .mobile-admin-actions { display: flex; gap: .5rem; }
+      .mobile-admin-nav { display: none; flex-direction: column; background: var(--charcoal); padding: 1rem 1.2rem; gap: .6rem; position: sticky; top: 0; z-index: 100; }
+      .mobile-admin-top { display: flex; align-items: center; justify-content: space-between; }
+      .mobile-admin-brand { font-family: var(--fd); color: var(--warm-white); font-size: .95rem; font-weight: 700; line-height: 1.2; }
+      .mobile-admin-brand span { display: block; font-size: .52rem; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 400; }
+      .mobile-admin-actions { display: flex; gap: .4rem; flex-shrink: 0; }
       .mobile-admin-tabs { display: flex; gap: .4rem; }
-      .mobile-admin-tab { flex: 1; padding: .55rem .3rem; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; text-align: center; color: rgba(250,248,244,.5); border: 1px solid rgba(255,255,255,.1); border-radius: 2px; cursor: pointer; transition: background .2s, color .2s; }
+      .mobile-admin-tab { flex: 1; padding: .5rem .3rem; font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; text-align: center; color: rgba(250,248,244,.5); border: 1px solid rgba(255,255,255,.1); border-radius: 2px; cursor: pointer; transition: background .2s, color .2s; }
       .mobile-admin-tab.active { background: rgba(201,168,76,.2); color: var(--gold); border-color: rgba(201,168,76,.4); }
       .upload-grid { grid-template-columns: 1fr; }
       .admin-stats { grid-template-columns: 1fr 1fr; }
@@ -950,7 +951,7 @@ try { document.getElementById('whatsapp-link').href = 'https://wa.me/' + WHATSAP
 function handleAdminNavVisibility() {
   var mobileNav = document.getElementById('mobile-admin-nav');
   if (!mobileNav) return;
-  mobileNav.style.display = window.innerWidth <= 900 ? 'block' : 'none';
+  mobileNav.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
 }
 window.addEventListener('resize', handleAdminNavVisibility);
 
