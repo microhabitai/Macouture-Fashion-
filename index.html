@@ -534,6 +534,7 @@
       <div class="admin-nav-item" id="anav-collections" onclick="switchTab('collections')"><span class="nav-icon">◈</span> Collections</div>
       <div class="admin-nav-item" id="anav-orders" onclick="switchTab('orders')"><span class="nav-icon">◎</span> Orders</div>
       <div class="admin-sidebar-footer">
+        <button onclick="showPage('home')" style="width:100%;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;padding:.65rem;margin-bottom:.5rem;background:rgba(201,168,76,.12);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:2px;cursor:pointer;">← Back to Website</button>
         <button class="btn-outline" onclick="doLogout()" style="width:100%;font-size:.72rem;color:rgba(250,248,244,.6);border-color:rgba(255,255,255,.2)">Sign Out</button>
       </div>
     </aside>
@@ -832,15 +833,75 @@ async function doUpload() {
 }
 
 async function loadAdminItems() {
-  const g=document.getElementById('admin-grid'); g.innerHTML='<div class="full-loader"><div class="loader"></div></div>';
+  var g = document.getElementById('admin-grid');
+  g.innerHTML = '<div class="full-loader"><div class="loader"></div></div>';
   try {
-    const snap=await db.collection('items').orderBy('createdAt','desc').get();
-    document.getElementById('stat-items').textContent=snap.size;
-    if (snap.empty){g.innerHTML='<p style="color:var(--muted);font-size:.88rem">No items yet.</p>';return;}
-    g.innerHTML=snap.docs.map(doc=>{const d=doc.data();return`<div class="admin-card"><div class="admin-card-img"><img src="${d.mainPhoto}" alt="${escHtml(d.name)}" loading="lazy"></div><div class="admin-card-body"><p class="admin-card-name">${escHtml(d.name)}</p><p class="admin-card-price">${formatNGN(d.price)}</p><div class="admin-card-actions"><button class="btn-sm-edit" onclick="openEdit('${doc.id}','${escHtml(d.name).replace(/'/g,"\\'")}',${d.price},'${escHtml(d.description||'').replace(/'/g,"\\'")}')">Edit</button><button class="btn-sm-del" onclick="deleteItem('${doc.id}')">Delete</button></div></div></div>`;}).join('');
-  } catch(e){g.innerHTML='<p style="color:var(--error);font-size:.88rem">Could not load items.</p>';}
+    var snap = await db.collection('items').orderBy('createdAt','desc').get();
+    document.getElementById('stat-items').textContent = snap.size;
+    if (snap.empty) {
+      g.innerHTML = '<p style="color:var(--muted);font-size:.88rem;padding:1rem 0">No items yet.</p>';
+      return;
+    }
+    g.innerHTML = '';
+    snap.docs.forEach(function(doc) {
+      var d = doc.data();
+      var card = document.createElement('div');
+      card.className = 'admin-card';
+      var imgDiv = document.createElement('div');
+      imgDiv.className = 'admin-card-img';
+      var img = document.createElement('img');
+      img.src = d.mainPhoto || '';
+      img.alt = d.name || '';
+      img.loading = 'lazy';
+      imgDiv.appendChild(img);
+      var body = document.createElement('div');
+      body.className = 'admin-card-body';
+      var nameEl = document.createElement('p');
+      nameEl.className = 'admin-card-name';
+      nameEl.textContent = d.name || '';
+      var priceEl = document.createElement('p');
+      priceEl.className = 'admin-card-price';
+      priceEl.textContent = formatNGN(d.price || 0);
+      var actions = document.createElement('div');
+      actions.className = 'admin-card-actions';
+      var editBtn = document.createElement('button');
+      editBtn.className = 'btn-sm-edit';
+      editBtn.textContent = 'Edit';
+      (function(id, name, price, desc) {
+        editBtn.onclick = function() { openEdit(id, name, price, desc); };
+      })(doc.id, d.name || '', d.price || 0, d.description || '');
+      var delBtn = document.createElement('button');
+      delBtn.className = 'btn-sm-del';
+      delBtn.textContent = 'Delete';
+      (function(id, name) {
+        delBtn.onclick = function() { deleteItem(id, name); };
+      })(doc.id, d.name || '');
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      body.appendChild(nameEl);
+      body.appendChild(priceEl);
+      body.appendChild(actions);
+      card.appendChild(imgDiv);
+      card.appendChild(body);
+      g.appendChild(card);
+    });
+  } catch(e) {
+    console.error('loadAdminItems error:', e);
+    g.innerHTML = '<p style="color:var(--error);font-size:.88rem">Could not load items.</p>';
+  }
 }
-async function deleteItem(id) { if(!confirm('Delete this item permanently?'))return; try{await db.collection('items').doc(id).delete();toast('Item deleted.');loadAdminItems();}catch(e){toast('Could not delete item.','error');} }
+async function deleteItem(id, name) {
+  var itemName = name ? '"' + name + '"' : 'this item';
+  var msg = 'Are you sure you want to delete ' + itemName + '?\n\nThis action cannot be undone.';
+  if (!confirm(msg)) return;
+  try {
+    await db.collection('items').doc(id).delete();
+    toast('Item deleted successfully.');
+    loadAdminItems();
+  } catch(e) {
+    toast('Could not delete item. Please try again.', 'error');
+  }
+}
 function openEdit(id,name,price,desc) { document.getElementById('edit-id').value=id; document.getElementById('edit-name').value=name; document.getElementById('edit-price').value=price; document.getElementById('edit-desc').value=desc; document.getElementById('edit-modal').classList.add('open'); }
 function closeEdit() { document.getElementById('edit-modal').classList.remove('open'); }
 async function saveEdit() {
