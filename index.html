@@ -340,6 +340,27 @@
       .orders-table { font-size: .75rem; }
       .orders-table th, .orders-table td { padding: .6rem .5rem; }
     }
+
+    /* Quantity selector */
+    .qty-wrap { margin-bottom: 1.5rem; }
+    .qty-label { font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: .5rem; font-weight: 500; display: block; }
+    .qty-selector { display: flex; align-items: center; }
+    .qty-btn { width: 40px; height: 40px; border: 1.5px solid var(--border); background: var(--cream); font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .2s; color: var(--charcoal); }
+    .qty-btn:hover { background: var(--border); }
+    .qty-input { width: 55px; height: 40px; border: 1.5px solid var(--border); border-left: none; border-right: none; text-align: center; font-size: .95rem; background: var(--cream); color: var(--charcoal); -moz-appearance: textfield; outline: none; }
+    .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .stock-info { font-size: .78rem; color: var(--muted); margin-top: .6rem; }
+    .stock-low { color: #e67e22 !important; font-weight: 500; }
+    .stock-out { color: var(--error) !important; font-weight: 500; }
+    .out-of-stock-btn { width: 100%; padding: .85rem; background: var(--border); color: var(--muted); font-size: .82rem; letter-spacing: .1em; text-transform: uppercase; cursor: not-allowed; border: none; border-radius: 2px; }
+    /* Stock badges on admin cards */
+    .stock-badge { display: inline-block; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; padding: .2rem .65rem; border-radius: 20px; margin-bottom: .5rem; }
+    .stock-ok { background: rgba(45,122,79,.1); color: var(--success); }
+    .stock-low-badge { background: rgba(230,126,34,.1); color: #e67e22; }
+    .stock-out-badge { background: rgba(192,57,43,.1); color: var(--error); }
+    /* Order summary quantity row */
+    .order-qty-row { display: flex; justify-content: space-between; font-size: .82rem; margin-bottom: .5rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+    .order-qty-label { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -474,8 +495,18 @@
       <p class="detail-price" id="detail-price"></p>
       <p class="detail-desc" id="detail-desc"></p>
       <hr class="detail-divider">
+      <div class="qty-wrap">
+        <span class="qty-label">Quantity</span>
+        <div class="qty-selector">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <input class="qty-input" type="number" id="qty-input" value="1" min="1" onchange="updateQtyDisplay()">
+          <button class="qty-btn" onclick="changeQty(1)">＋</button>
+        </div>
+        <p class="stock-info" id="stock-info"></p>
+      </div>
       <div class="detail-actions">
-        <button class="btn-primary" onclick="goCheckout()">Buy Now</button>
+        <button class="btn-primary" id="detail-buy-btn" onclick="goCheckout()">Buy Now</button>
+        <button class="out-of-stock-btn" id="out-of-stock-btn" style="display:none">Out of Stock</button>
         <button class="btn-outline" onclick="showPage('collections')">← Back to Collections</button>
       </div>
     </div>
@@ -501,6 +532,10 @@
         <div class="order-row">
           <div class="order-thumb"><img id="co-img" src="" alt=""></div>
           <div><p class="order-item-name" id="co-name-display"></p><p class="order-item-price" id="co-price-display"></p></div>
+        </div>
+        <div class="order-qty-row">
+          <span class="order-qty-label">Quantity</span>
+          <span id="co-qty-display">1 piece</span>
         </div>
         <div class="order-total-row"><span class="order-total-label">Total</span><span class="order-total-amount" id="co-total"></span></div>
       </div>
@@ -581,6 +616,7 @@
           <div>
             <div class="form-group"><label>Item Name *</label><input type="text" id="up-name" placeholder="e.g. Midnight Satin Gown"></div>
             <div class="form-group"><label>Price (₦) *</label><input type="number" id="up-price" placeholder="e.g. 45000"></div>
+            <div class="form-group"><label>Stock Quantity *</label><input type="number" id="up-stock" placeholder="e.g. 10" min="1"></div>
             <div class="form-group"><label>Description</label><textarea id="up-desc" placeholder="Brief description of the piece..."></textarea></div>
             <div class="upload-progress" id="up-progress">
               <p class="progress-text" id="up-progress-text">Uploading...</p>
@@ -615,6 +651,7 @@
     <input type="hidden" id="edit-id">
     <div class="form-group"><label>Item Name</label><input type="text" id="edit-name"></div>
     <div class="form-group"><label>Price (₦)</label><input type="number" id="edit-price"></div>
+    <div class="form-group"><label>Stock Quantity</label><input type="number" id="edit-stock" min="0"></div>
     <div class="form-group"><label>Description</label><textarea id="edit-desc"></textarea></div>
     <div class="modal-actions">
       <button class="btn-gold" onclick="saveEdit()" style="flex:1">Save Changes</button>
@@ -729,6 +766,37 @@ async function openItem(id) {
   showPage('item');
 }
 function switchThumb(el,url) { document.getElementById('detail-main-img').src=url; document.querySelectorAll('.thumb-item').forEach(t=>t.classList.remove('active')); el.classList.add('active'); }
+
+function changeQty(delta) {
+  var input = document.getElementById('qty-input');
+  var stock = currentItem ? (currentItem.stock || 0) : 1;
+  var newVal = (parseInt(input.value) || 1) + delta;
+  if (newVal < 1) newVal = 1;
+  if (newVal > stock) {
+    toast('Only ' + stock + ' pieces available', 'error');
+    newVal = stock;
+  }
+  input.value = newVal;
+  currentQty = newVal;
+  updateQtyDisplay();
+}
+
+function updateQtyDisplay() {
+  currentQty = parseInt(document.getElementById('qty-input').value) || 1;
+  var stock = currentItem ? (currentItem.stock || 0) : 1;
+  if (currentQty > stock) {
+    currentQty = stock;
+    document.getElementById('qty-input').value = stock;
+  }
+  if (currentQty < 1) {
+    currentQty = 1;
+    document.getElementById('qty-input').value = 1;
+  }
+  if (currentItem) {
+    document.getElementById('detail-price').textContent = formatNGN(currentItem.price * currentQty);
+  }
+}
+
 function goCheckout() {
   if (!currentItem) return;
   document.getElementById('co-img').src = currentItem.mainPhoto;
@@ -743,7 +811,7 @@ function initiatePayment() {
   if (!name||!email||!phone||!address) { toast('Please fill in all fields.','error'); return; }
   if (!email.includes('@')) { toast('Please enter a valid email.','error'); return; }
   const btn=document.getElementById('pay-btn'); btn.disabled=true; btn.innerHTML='<div class="loader loader-sm" style="margin:0 auto"></div>';
-  const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:currentItem.price*100, currency:'NGN', ref:'MCT-'+Date.now(),
+  const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:currentItem.price*currentQty*100, currency:'NGN', ref:'MCT-'+Date.now(),
     metadata:{custom_fields:[{display_name:'Customer Name',variable_name:'customer_name',value:name},{display_name:'Phone',variable_name:'phone',value:phone},{display_name:'Address',variable_name:'address',value:address},{display_name:'Item',variable_name:'item',value:currentItem.name}]},
     callback:function(res){btn.disabled=false;btn.textContent='Proceed to Payment';saveOrder(res.reference,name,email,phone,address);},
     onClose:function(){btn.disabled=false;btn.textContent='Proceed to Payment';}
@@ -752,9 +820,32 @@ function initiatePayment() {
 }
 async function saveOrder(ref,name,email,phone,address) {
   try {
-    await db.collection('orders').add({reference:ref,customerName:name,customerEmail:email,customerPhone:phone,deliveryAddress:address,itemId:currentItem.id,itemName:currentItem.name,itemPhoto:currentItem.mainPhoto,amount:currentItem.price,status:'paid',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.runTransaction(async function(transaction) {
+      var itemRef = db.collection('items').doc(currentItem.id);
+      var itemDoc = await transaction.get(itemRef);
+      if (!itemDoc.exists) throw new Error('Item not found');
+      var currentStock = itemDoc.data().stock || 0;
+      if (currentStock < currentQty) throw new Error('Not enough stock');
+      transaction.update(itemRef, { stock: currentStock - currentQty });
+      var orderRef = db.collection('orders').doc();
+      transaction.set(orderRef, {
+        reference: ref, customerName: name, customerEmail: email,
+        customerPhone: phone, deliveryAddress: address,
+        itemId: currentItem.id, itemName: currentItem.name,
+        itemPhoto: currentItem.mainPhoto,
+        pricePerItem: currentItem.price,
+        quantity: currentQty,
+        amount: currentItem.price * currentQty,
+        status: 'paid',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
     showPage('success');
-  } catch(e) { toast('Payment received but order could not be saved. Screenshot this.','error'); showPage('success'); }
+  } catch(e) {
+    console.error('saveOrder error:', e);
+    toast('Payment received but order could not be saved. Screenshot this.', 'error');
+    showPage('success');
+  }
 }
 async function doLogin() {
   const email=document.getElementById('admin-email').value.trim(), pass=document.getElementById('admin-pass').value;
@@ -797,6 +888,7 @@ function onExtraPhotos(input) {
 function resetUploadForm() {
   document.getElementById('up-name').value = '';
   document.getElementById('up-price').value = '';
+  document.getElementById('up-stock').value = '';
   document.getElementById('up-desc').value = '';
   document.getElementById('main-drop').innerHTML = '<div class="upload-placeholder"><span>📷</span><p>Click to upload</p></div>';
   var ep = document.getElementById('extra-preview');
@@ -831,7 +923,7 @@ async function uploadToCloudinary(file, onProgress) {
 }
 async function doUpload() {
   const name=document.getElementById('up-name').value.trim(), price=document.getElementById('up-price').value.trim(), desc=document.getElementById('up-desc').value.trim();
-  if (!name||!price) { toast('Item name and price are required.','error'); return; }
+  if (!name||!price||!stock) { toast('Item name, price and stock quantity are required.','error'); return; }
   if (!mainFile) { toast('Please select a main photo.','error'); return; }
   const btn=document.getElementById('up-btn'), progress=document.getElementById('up-progress'), fill=document.getElementById('up-progress-fill'), txt=document.getElementById('up-progress-text');
   btn.disabled=true; btn.innerHTML='<div class="loader loader-sm" style="margin:0 auto"></div>'; progress.classList.add('show');
@@ -849,7 +941,7 @@ async function doUpload() {
       }
     }
     txt.textContent='Saving...'; fill.style.width='90%';
-    await db.collection('items').add({name:name,price:Number(price),description:desc,mainPhoto:mainURL,extraPhotos:extraURLs,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection('items').add({name:name,price:Number(price),stock:Number(stock),description:desc,mainPhoto:mainURL,extraPhotos:extraURLs,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
     fill.style.width='100%'; toast('Item published successfully');
     setTimeout(resetUploadForm, 1200);
   } catch(e) { toast('Upload failed: '+e.message,'error'); btn.textContent='Publish Item'; btn.disabled=false; progress.classList.remove('show'); }
@@ -885,13 +977,25 @@ async function loadAdminItems() {
       var priceEl = document.createElement('p');
       priceEl.className = 'admin-card-price';
       priceEl.textContent = formatNGN(d.price || 0);
+      var stockBadge = document.createElement('span');
+      var itemStock = d.stock || 0;
+      if (itemStock <= 0) {
+        stockBadge.className = 'stock-badge stock-out-badge';
+        stockBadge.textContent = 'Out of Stock';
+      } else if (itemStock <= 3) {
+        stockBadge.className = 'stock-badge stock-low-badge';
+        stockBadge.textContent = 'Low: ' + itemStock + ' left';
+      } else {
+        stockBadge.className = 'stock-badge stock-ok';
+        stockBadge.textContent = itemStock + ' in stock';
+      }
       var actions = document.createElement('div');
       actions.className = 'admin-card-actions';
       var editBtn = document.createElement('button');
       editBtn.className = 'btn-sm-edit';
       editBtn.textContent = 'Edit';
       (function(id, name, price, desc) {
-        editBtn.onclick = function() { openEdit(id, name, price, desc); };
+        editBtn.onclick = function() { openEdit(id, name, price, desc, d.stock || 0); };
       })(doc.id, d.name || '', d.price || 0, d.description || '');
       var delBtn = document.createElement('button');
       delBtn.className = 'btn-sm-del';
@@ -903,6 +1007,7 @@ async function loadAdminItems() {
       actions.appendChild(delBtn);
       body.appendChild(nameEl);
       body.appendChild(priceEl);
+      body.appendChild(stockBadge);
       body.appendChild(actions);
       card.appendChild(imgDiv);
       card.appendChild(body);
@@ -930,7 +1035,7 @@ function closeEdit() { document.getElementById('edit-modal').classList.remove('o
 async function saveEdit() {
   const id=document.getElementById('edit-id').value, name=document.getElementById('edit-name').value.trim(), price=document.getElementById('edit-price').value.trim(), desc=document.getElementById('edit-desc').value.trim();
   if (!name||!price){toast('Name and price required.','error');return;}
-  try{await db.collection('items').doc(id).update({name,price:Number(price),description:desc});toast('Item updated ✓');closeEdit();loadAdminItems();}catch(e){toast('Update failed.','error');}
+  try{var editStock=parseInt(document.getElementById('edit-stock').value)||0; await db.collection('items').doc(id).update({name:name,price:Number(price),stock:editStock,description:desc});toast('Item updated ✓');closeEdit();loadAdminItems();}catch(e){toast('Update failed.','error');}
 }
 async function loadOrders() {
   const wrap=document.getElementById('orders-wrap'); wrap.innerHTML='<div class="full-loader"><div class="loader"></div></div>';
@@ -940,8 +1045,8 @@ async function loadOrders() {
     document.getElementById('stat-orders').textContent=snap.size;
     document.getElementById('stat-revenue').textContent=snap.size?formatNGN(total):'₦0';
     if(snap.empty){wrap.innerHTML='<p style="color:var(--muted);font-size:.88rem;padding:2rem 0">No orders yet. When customers pay, they appear here.</p>';return;}
-    const rows=snap.docs.map(doc=>{const o=doc.data(),date=o.createdAt?new Date(o.createdAt.seconds*1000).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}):'—';return`<tr><td>${date}</td><td>${escHtml(o.customerName)}</td><td>${escHtml(o.customerPhone)}</td><td>${escHtml(o.customerEmail)}</td><td>${escHtml(o.itemName)}</td><td>${formatNGN(o.amount)}</td><td><span class="status-badge paid">Paid</span></td></tr>`;}).join('');
-    wrap.innerHTML=`<div style="overflow-x:auto"><table class="orders-table"><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Email</th><th>Item</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    const rows=snap.docs.map(doc=>{const o=doc.data(),date=o.createdAt?new Date(o.createdAt.seconds*1000).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}):'—';return`<tr><td>${date}</td><td>${escHtml(o.customerName)}</td><td>${escHtml(o.customerPhone)}</td><td>${escHtml(o.customerEmail)}</td><td>${escHtml(o.itemName)}</td><td>${o.quantity||1}</td><td>${formatNGN(o.amount)}</td><td><span class="status-badge paid">Paid</span></td></tr>`;}).join('');
+    wrap.innerHTML=`<div style="overflow-x:auto"><table class="orders-table"><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Email</th><th>Item</th><th>Qty</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   } catch(e){wrap.innerHTML='<p style="color:var(--error);font-size:.88rem">Could not load orders.</p>';}
 }
 
