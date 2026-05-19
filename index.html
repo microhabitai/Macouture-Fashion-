@@ -922,7 +922,7 @@ async function uploadToCloudinary(file, onProgress) {
   });
 }
 async function doUpload() {
-  const name=document.getElementById('up-name').value.trim(), price=document.getElementById('up-price').value.trim(), desc=document.getElementById('up-desc').value.trim();
+  const name=document.getElementById('up-name').value.trim(), price=document.getElementById('up-price').value.trim(), stock=document.getElementById('up-stock').value.trim(), desc=document.getElementById('up-desc').value.trim();
   if (!name||!price||!stock) { toast('Item name, price and stock quantity are required.','error'); return; }
   if (!mainFile) { toast('Please select a main photo.','error'); return; }
   const btn=document.getElementById('up-btn'), progress=document.getElementById('up-progress'), fill=document.getElementById('up-progress-fill'), txt=document.getElementById('up-progress-text');
