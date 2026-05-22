@@ -696,7 +696,7 @@ function comingSoonHTML() {
   </div>`;
 }
 
-function showPage(id) {
+function showPage(id, pushState=true) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   const pub = ['home','collections','item','checkout','success'];
@@ -705,7 +705,30 @@ function showPage(id) {
   if (id==='home') loadFeatured();
   if (id==='collections') loadCollections();
   if (id==='admin-dashboard') { loadAdminItems(); loadOrders(); handleAdminNavVisibility(); }
+  // Push to browser history so back button works
+  const noHistory = ['admin-login','admin-dashboard','checkout','success'];
+  if (pushState && !noHistory.includes(id)) {
+    history.pushState({ page: id, itemId: currentItem ? currentItem.id : null }, '', '#' + id);
+  }
 }
+
+// Handle browser back/forward button
+window.addEventListener('popstate', function(e) {
+  if (e.state && e.state.page) {
+    const pg = e.state.page;
+    if (pg === 'item' && e.state.itemId) {
+      // Re-open the item without pushing new history
+      db.collection('items').doc(e.state.itemId).get().then(doc => {
+        if (doc.exists) { openItem(doc.id, false); }
+        else { showPage('collections', false); }
+      }).catch(() => showPage('collections', false));
+    } else {
+      showPage(pg, false);
+    }
+  } else {
+    showPage('home', false);
+  }
+});
 function navScrollTo(sid) {
   if (!document.getElementById('page-home').classList.contains('active')) { showPage('home'); setTimeout(()=>scrollToEl(sid),350); } else scrollToEl(sid);
 }
@@ -754,7 +777,7 @@ function filterItems(q) {
   const t=q.toLowerCase();
   renderGrid(allItems.filter(i=>i.name.toLowerCase().includes(t)||(i.description&&i.description.toLowerCase().includes(t))));
 }
-async function openItem(id) {
+async function openItem(id, pushHistory=true) {
   let item = allItems.find(i=>i.id===id);
   if (!item) { try { const d=await db.collection('items').doc(id).get(); if(!d.exists)return; item={id:d.id,...d.data()}; } catch(e){return;} }
   currentItem = item;
@@ -764,7 +787,7 @@ async function openItem(id) {
   document.getElementById('detail-desc').textContent = item.description||'A beautiful ready-to-wear piece from Macouture Fashion House.';
   const photos = [item.mainPhoto,...(item.extraPhotos||[])];
   document.getElementById('detail-thumbs').innerHTML = photos.map((p,i)=>`<div class="thumb-item ${i===0?'active':''}" onclick="switchThumb(this,'${p}')"><img src="${p}" alt=""></div>`).join('');
-  showPage('item');
+  showPage('item', pushHistory);
 }
 function switchThumb(el,url) { document.getElementById('detail-main-img').src=url; document.querySelectorAll('.thumb-item').forEach(t=>t.classList.remove('active')); el.classList.add('active'); }
 
@@ -1073,6 +1096,11 @@ try {
     });
   }
 } catch(e) { console.error('Auth error:', e); }
+
+// Set initial history state
+if (!history.state) {
+  history.replaceState({ page: 'home', itemId: null }, '', '#home');
+}
 </script>
 
 <!-- SIZE CHART MODAL -->
