@@ -523,6 +523,7 @@
       <div class="form-group"><label>Email Address *</label><input type="email" id="co-email" placeholder="your@email.com"></div>
       <div class="form-group"><label>Phone Number *</label><input type="tel" id="co-phone" placeholder="+234 800 000 0000"></div>
       <div class="form-group"><label>Delivery Address *</label><textarea id="co-address" placeholder="Full delivery address — street, city, state"></textarea></div>
+      <div class="form-group"><label>Size *</label><select id="co-size"><option value="">— Select your size —</option><option value="6">6</option><option value="8">8</option><option value="10">10</option><option value="12">12</option><option value="14">14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="22">22</option><option value="24">24</option></select></div>
       <button class="btn-primary" id="pay-btn" onclick="initiatePayment()" style="width:100%">Proceed to Payment</button>
       <p class="checkout-secure">🔒 Secured by Paystack · Your information is safe</p>
     </div>
@@ -803,22 +804,22 @@ function goCheckout() {
   document.getElementById('co-name-display').textContent = currentItem.name;
   document.getElementById('co-price-display').textContent = formatNGN(currentItem.price);
   document.getElementById('co-total').textContent = formatNGN(currentItem.price);
-  ['co-name','co-email','co-phone','co-address'].forEach(id=>document.getElementById(id).value='');
+  ['co-name','co-email','co-phone','co-address'].forEach(id=>document.getElementById(id).value=''); document.getElementById('co-size').value='';
   showPage('checkout');
 }
 function initiatePayment() {
-  const name=document.getElementById('co-name').value.trim(), email=document.getElementById('co-email').value.trim(), phone=document.getElementById('co-phone').value.trim(), address=document.getElementById('co-address').value.trim();
-  if (!name||!email||!phone||!address) { toast('Please fill in all fields.','error'); return; }
+  const name=document.getElementById('co-name').value.trim(), email=document.getElementById('co-email').value.trim(), phone=document.getElementById('co-phone').value.trim(), address=document.getElementById('co-address').value.trim(), size=document.getElementById('co-size').value;
+  if (!name||!email||!phone||!address||!size) { toast('Please fill in all fields including your size.','error'); return; }
   if (!email.includes('@')) { toast('Please enter a valid email.','error'); return; }
   const btn=document.getElementById('pay-btn'); btn.disabled=true; btn.innerHTML='<div class="loader loader-sm" style="margin:0 auto"></div>';
   const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:currentItem.price*currentQty*100, currency:'NGN', ref:'MCT-'+Date.now(),
     metadata:{custom_fields:[{display_name:'Customer Name',variable_name:'customer_name',value:name},{display_name:'Phone',variable_name:'phone',value:phone},{display_name:'Address',variable_name:'address',value:address},{display_name:'Item',variable_name:'item',value:currentItem.name}]},
-    callback:function(res){btn.disabled=false;btn.textContent='Proceed to Payment';saveOrder(res.reference,name,email,phone,address);},
+    callback:function(res){btn.disabled=false;btn.textContent='Proceed to Payment';saveOrder(res.reference,name,email,phone,address,size);},
     onClose:function(){btn.disabled=false;btn.textContent='Proceed to Payment';}
   });
   handler.openIframe();
 }
-async function saveOrder(ref,name,email,phone,address) {
+async function saveOrder(ref,name,email,phone,address,size) {
   try {
     await db.runTransaction(async function(transaction) {
       var itemRef = db.collection('items').doc(currentItem.id);
@@ -830,7 +831,7 @@ async function saveOrder(ref,name,email,phone,address) {
       var orderRef = db.collection('orders').doc();
       transaction.set(orderRef, {
         reference: ref, customerName: name, customerEmail: email,
-        customerPhone: phone, deliveryAddress: address,
+        customerPhone: phone, deliveryAddress: address, size: size,
         itemId: currentItem.id, itemName: currentItem.name,
         itemPhoto: currentItem.mainPhoto,
         pricePerItem: currentItem.price,
@@ -1045,8 +1046,8 @@ async function loadOrders() {
     document.getElementById('stat-orders').textContent=snap.size;
     document.getElementById('stat-revenue').textContent=snap.size?formatNGN(total):'₦0';
     if(snap.empty){wrap.innerHTML='<p style="color:var(--muted);font-size:.88rem;padding:2rem 0">No orders yet. When customers pay, they appear here.</p>';return;}
-    const rows=snap.docs.map(doc=>{const o=doc.data(),date=o.createdAt?new Date(o.createdAt.seconds*1000).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}):'—';return`<tr><td>${date}</td><td>${escHtml(o.customerName)}</td><td>${escHtml(o.customerPhone)}</td><td>${escHtml(o.customerEmail)}</td><td>${escHtml(o.itemName)}</td><td>${o.quantity||1}</td><td>${formatNGN(o.amount)}</td><td><span class="status-badge paid">Paid</span></td></tr>`;}).join('');
-    wrap.innerHTML=`<div style="overflow-x:auto"><table class="orders-table"><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Email</th><th>Item</th><th>Qty</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    const rows=snap.docs.map(doc=>{const o=doc.data(),date=o.createdAt?new Date(o.createdAt.seconds*1000).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}):'—';return`<tr><td>${date}</td><td>${escHtml(o.customerName)}</td><td>${escHtml(o.customerPhone)}</td><td>${escHtml(o.customerEmail)}</td><td>${escHtml(o.itemName)}</td><td>${escHtml(o.size||'—')}</td><td>${o.quantity||1}</td><td>${formatNGN(o.amount)}</td><td><span class="status-badge paid">Paid</span></td></tr>`;}).join('');
+    wrap.innerHTML=`<div style="overflow-x:auto"><table class="orders-table"><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Email</th><th>Item</th><th>Size</th><th>Qty</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   } catch(e){wrap.innerHTML='<p style="color:var(--error);font-size:.88rem">Could not load orders.</p>';}
 }
 
