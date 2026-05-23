@@ -500,7 +500,7 @@
         <span class="qty-label">Quantity</span>
         <div class="qty-selector">
           <button class="qty-btn" onclick="changeQty(-1)">−</button>
-          <input class="qty-input" type="number" id="qty-input" value="1" min="1" onchange="updateQtyDisplay()">
+          <input class="qty-input" type="number" id="qty-input" value="1" min="1" onchange="updateQtyDisplay()" oninput="updateQtyDisplay()">
           <button class="qty-btn" onclick="changeQty(1)">＋</button>
         </div>
         <p class="stock-info" id="stock-info"></p>
@@ -546,11 +546,17 @@
 </div>
 
 <!-- SUCCESS -->
-<div class="page" id="page-success">
+<div class="page" id="page-success" style="padding:3rem 1.5rem;max-width:520px;margin:0 auto;width:100%;">
   <div class="success-check">✓</div>
   <h2>Order Confirmed!</h2>
-  <p>Thank you for your order. You'll receive a confirmation email shortly, and we'll reach out via WhatsApp to arrange delivery.</p>
-  <button class="btn-primary" onclick="showPage('collections')">Continue Shopping</button>
+  <p style="color:var(--muted);font-size:.88rem;margin-bottom:2rem;">Thank you for your order. We'll reach out via WhatsApp to arrange delivery.</p>
+  <div id="receipt-box" style="border:1px solid var(--border);border-radius:2px;padding:1.5rem;background:var(--warm-white);text-align:left;margin-bottom:1.5rem;">
+    <p style="font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--brown);margin-bottom:.3rem;">Macouture Fashion House</p>
+    <h3 style="font-family:var(--fd);font-size:1.1rem;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:.8rem;">Order Receipt</h3>
+    <div id="receipt-content" style="font-size:.82rem;color:var(--charcoal);line-height:1.9;"></div>
+  </div>
+  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.5rem;">📸 Screenshot this receipt as proof of payment</p>
+  <button class="btn-primary" onclick="showPage('collections')" style="width:100%">Continue Shopping</button>
 </div>
 
 <!-- ADMIN LOGIN -->
@@ -820,6 +826,11 @@ function updateQtyDisplay() {
   if (currentItem) {
     document.getElementById('detail-price').textContent = formatNGN(currentItem.price * currentQty);
   }
+  // Update order summary if on checkout page
+  var qtyDisplay = document.getElementById('co-qty-display');
+  var totalDisplay = document.getElementById('co-total');
+  if (qtyDisplay) qtyDisplay.textContent = currentQty + (currentQty === 1 ? ' piece' : ' pieces');
+  if (totalDisplay && currentItem) totalDisplay.textContent = formatNGN(currentItem.price * currentQty);
 }
 
 function goCheckout() {
@@ -827,7 +838,8 @@ function goCheckout() {
   document.getElementById('co-img').src = currentItem.mainPhoto;
   document.getElementById('co-name-display').textContent = currentItem.name;
   document.getElementById('co-price-display').textContent = formatNGN(currentItem.price);
-  document.getElementById('co-total').textContent = formatNGN(currentItem.price);
+  document.getElementById('co-qty-display').textContent = currentQty + (currentQty === 1 ? ' piece' : ' pieces');
+  document.getElementById('co-total').textContent = formatNGN(currentItem.price * currentQty);
   ['co-name','co-email','co-phone','co-address'].forEach(id=>document.getElementById(id).value=''); document.getElementById('co-size').value='';
   showPage('checkout');
 }
@@ -877,6 +889,22 @@ async function saveOrder(ref,name,email,phone,address,size) {
         await itemRef.update({ stock: newStock });
       }
     } catch(stockErr) { console.warn('Stock update failed:', stockErr); }
+    // Populate receipt
+    try {
+      var receiptEl = document.getElementById('receipt-content');
+      if (receiptEl) {
+        receiptEl.innerHTML =
+          '<p><b>Ref:</b> ' + ref + '</p>' +
+          '<p><b>Item:</b> ' + escHtml(currentItem.name) + '</p>' +
+          '<p><b>Size:</b> ' + escHtml(size) + '</p>' +
+          '<p><b>Qty:</b> ' + currentQty + '</p>' +
+          '<p><b>Amount:</b> ' + formatNGN(currentItem.price * currentQty) + '</p>' +
+          '<p><b>Name:</b> ' + escHtml(name) + '</p>' +
+          '<p><b>Phone:</b> ' + escHtml(phone) + '</p>' +
+          '<p><b>Address:</b> ' + escHtml(address) + '</p>' +
+          '<p style="margin-top:.5rem;font-size:.72rem;color:var(--muted);">Status: <span style="color:var(--success);font-weight:600;">PAID</span></p>';
+      }
+    } catch(receiptErr) { console.warn('Receipt error:', receiptErr); }
     showPage('success');
   } catch(e) {
     console.error('saveOrder error:', e);
