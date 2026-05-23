@@ -850,7 +850,7 @@ function initiatePayment() {
       handler.openIframe();
     } catch(e) {
       btn.disabled=false; btn.textContent='Proceed to Payment';
-      toast('Payment could not open. Please try again.','error');
+      toast('Error: ' + (e.message || JSON.stringify(e)), 'error');
       console.error('Paystack error:', e);
     }
   }
