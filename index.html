@@ -844,26 +844,25 @@ function initiatePayment() {
 }
 async function saveOrder(ref,name,email,phone,address,size) {
   try {
-    await db.runTransaction(async function(transaction) {
-      var itemRef = db.collection('items').doc(currentItem.id);
-      var itemDoc = await transaction.get(itemRef);
-      if (!itemDoc.exists) throw new Error('Item not found');
-      var currentStock = itemDoc.data().stock || 0;
-      if (currentStock < currentQty) throw new Error('Not enough stock');
-      transaction.update(itemRef, { stock: currentStock - currentQty });
-      var orderRef = db.collection('orders').doc();
-      transaction.set(orderRef, {
-        reference: ref, customerName: name, customerEmail: email,
-        customerPhone: phone, deliveryAddress: address, size: size,
-        itemId: currentItem.id, itemName: currentItem.name,
-        itemPhoto: currentItem.mainPhoto,
-        pricePerItem: currentItem.price,
-        quantity: currentQty,
-        amount: currentItem.price * currentQty,
-        status: 'paid',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+    await db.collection('orders').add({
+      reference: ref, customerName: name, customerEmail: email,
+      customerPhone: phone, deliveryAddress: address, size: size,
+      itemId: currentItem.id, itemName: currentItem.name,
+      itemPhoto: currentItem.mainPhoto,
+      pricePerItem: currentItem.price,
+      quantity: currentQty,
+      amount: currentItem.price * currentQty,
+      status: 'paid',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    try {
+      var itemRef = db.collection('items').doc(currentItem.id);
+      var itemDoc = await itemRef.get();
+      if (itemDoc.exists) {
+        var newStock = Math.max(0, (itemDoc.data().stock || 0) - currentQty);
+        await itemRef.update({ stock: newStock });
+      }
+    } catch(stockErr) { console.warn('Stock update failed:', stockErr); }
     showPage('success');
   } catch(e) {
     console.error('saveOrder error:', e);
