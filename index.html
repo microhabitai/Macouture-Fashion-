@@ -546,17 +546,20 @@
 </div>
 
 <!-- SUCCESS -->
-<div class="page" id="page-success" style="padding:3rem 1.5rem;max-width:520px;margin:0 auto;width:100%;">
-  <div class="success-check">✓</div>
-  <h2>Order Confirmed!</h2>
-  <p style="color:var(--muted);font-size:.88rem;margin-bottom:2rem;">Thank you for your order. We'll reach out via WhatsApp to arrange delivery.</p>
-  <div id="receipt-box" style="border:1px solid var(--border);border-radius:2px;padding:1.5rem;background:var(--warm-white);text-align:left;margin-bottom:1.5rem;">
-    <p style="font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--brown);margin-bottom:.3rem;">Macouture Fashion House</p>
-    <h3 style="font-family:var(--fd);font-size:1.1rem;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:.8rem;">Order Receipt</h3>
-    <div id="receipt-content" style="font-size:.82rem;color:var(--charcoal);line-height:1.9;"></div>
+<div class="page" id="page-success" style="padding:2rem 1rem;max-width:480px;margin:0 auto;width:100%;">
+  <div class="success-check" style="margin-bottom:.8rem;">✓</div>
+  <h2 style="margin-bottom:.4rem;">Order Confirmed!</h2>
+  <p style="color:var(--muted);font-size:.82rem;margin-bottom:1.2rem;">Thank you! We'll reach out via WhatsApp to arrange delivery.</p>
+  <div id="receipt-box" style="border:1px solid var(--border);border-radius:2px;padding:1rem;background:var(--warm-white);text-align:left;margin-bottom:.8rem;">
+    <p style="font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--brown);margin-bottom:.2rem;">Macouture Fashion House</p>
+    <h3 style="font-family:var(--fd);font-size:1rem;margin-bottom:.6rem;border-bottom:1px solid var(--border);padding-bottom:.5rem;">Order Receipt</h3>
+    <div id="receipt-content" style="font-size:.78rem;color:var(--charcoal);line-height:1.5;"></div>
   </div>
-  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.5rem;">📸 Screenshot this receipt as proof of payment</p>
-  <button class="btn-primary" onclick="showPage('collections')" style="width:100%">Continue Shopping</button>
+  <p style="font-size:.7rem;color:var(--muted);margin-bottom:.8rem;">📸 Screenshot or download this receipt as proof of payment</p>
+  <div style="display:flex;gap:.6rem;margin-bottom:.6rem;">
+    <button class="btn-primary" onclick="downloadReceipt()" style="flex:1;font-size:.75rem;padding:.7rem;">⬇ Download Receipt</button>
+    <button class="btn-outline" onclick="showPage('collections')" style="flex:1;font-size:.75rem;padding:.7rem;">Continue Shopping</button>
+  </div>
 </div>
 
 <!-- ADMIN LOGIN -->
@@ -868,6 +871,26 @@ function initiatePayment() {
   }
   setTimeout(tryOpen, 400);
 }
+function downloadReceipt() {
+  var box = document.getElementById('receipt-box');
+  if (!box) return;
+  // Use html2canvas if available, otherwise prompt screenshot
+  if (typeof html2canvas !== 'undefined') {
+    html2canvas(box, {backgroundColor:'#faf8f4',scale:2}).then(function(canvas){
+      var a = document.createElement('a');
+      a.download = 'Macouture-Receipt.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    });
+  } else {
+    // Fallback: open printable version
+    var content = box.innerHTML;
+    var w = window.open('','_blank','width=400,height=600');
+    w.document.write('<html><head><title>Macouture Receipt</title><style>body{font-family:sans-serif;padding:20px;font-size:13px;}h3{font-size:16px;}div{padding:4px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;}</style></head><body>'+content+'<br><p style="font-size:11px;color:#999;">Macouture Fashion House — Receipt</p></body></html>');
+    w.document.close();
+    w.print();
+  }
+}
 async function saveOrder(ref,name,email,phone,address,size) {
   try {
     await db.collection('orders').add({
@@ -892,17 +915,22 @@ async function saveOrder(ref,name,email,phone,address,size) {
     // Populate receipt
     try {
       var receiptEl = document.getElementById('receipt-content');
+      var now = new Date();
+      var dateStr = now.toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'});
+      var timeStr = now.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
       if (receiptEl) {
+        var row = function(label,val){ return '<div style="display:flex;justify-content:space-between;padding:.25rem 0;border-bottom:1px solid #f0ece4;"><span style="color:var(--muted);font-size:.72rem;">'+label+'</span><span style="font-weight:500;font-size:.72rem;text-align:right;max-width:60%;">'+val+'</span></div>'; };
         receiptEl.innerHTML =
-          '<p><b>Ref:</b> ' + ref + '</p>' +
-          '<p><b>Item:</b> ' + escHtml(currentItem.name) + '</p>' +
-          '<p><b>Size:</b> ' + escHtml(size) + '</p>' +
-          '<p><b>Qty:</b> ' + currentQty + '</p>' +
-          '<p><b>Amount:</b> ' + formatNGN(currentItem.price * currentQty) + '</p>' +
-          '<p><b>Name:</b> ' + escHtml(name) + '</p>' +
-          '<p><b>Phone:</b> ' + escHtml(phone) + '</p>' +
-          '<p><b>Address:</b> ' + escHtml(address) + '</p>' +
-          '<p style="margin-top:.5rem;font-size:.72rem;color:var(--muted);">Status: <span style="color:var(--success);font-weight:600;">PAID</span></p>';
+          row('Reference', ref) +
+          row('Date & Time', dateStr + ' · ' + timeStr) +
+          row('Item', escHtml(currentItem.name)) +
+          row('Size', escHtml(size)) +
+          row('Qty', currentQty) +
+          row('Amount', formatNGN(currentItem.price * currentQty)) +
+          row('Name', escHtml(name)) +
+          row('Phone', escHtml(phone)) +
+          row('Address', escHtml(address)) +
+          '<div style="padding:.4rem 0;margin-top:.2rem;"><span style="color:var(--muted);font-size:.72rem;">Status</span> <span style="color:var(--success);font-weight:700;font-size:.78rem;float:right;">✓ PAID</span></div>';
       }
     } catch(receiptErr) { console.warn('Receipt error:', receiptErr); }
     showPage('success');
@@ -1112,7 +1140,7 @@ async function loadOrders() {
     if(snap.empty){wrap.innerHTML='<p style="color:var(--muted);font-size:.88rem;padding:2rem 0">No orders yet. When customers pay, they appear here.</p>';return;}
     const cards=snap.docs.map(doc=>{
       const o=doc.data();
-      const date=o.createdAt?new Date(o.createdAt.seconds*1000).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}):'—';
+      var _d=o.createdAt?new Date(o.createdAt.seconds*1000):null; const date=_d?_d.toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})+'<br><span style="font-size:.65rem;color:var(--muted)">'+_d.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'})+'</span>':'—';
       const photo=o.itemPhoto?`<img src="${escHtml(o.itemPhoto)}" alt="${escHtml(o.itemName)}" style="width:80px;height:90px;object-fit:cover;border-radius:2px;flex-shrink:0;">`:`<div style="width:80px;height:90px;background:var(--border);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--muted);">No photo</div>`;
       return `<div style="display:flex;gap:1rem;padding:1.2rem;border:1px solid var(--border);border-radius:2px;margin-bottom:.8rem;background:var(--warm-white);">
         ${photo}
