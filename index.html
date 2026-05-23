@@ -1082,8 +1082,33 @@ async function loadOrders() {
     document.getElementById('stat-orders').textContent=snap.size;
     document.getElementById('stat-revenue').textContent=snap.size?formatNGN(total):'₦0';
     if(snap.empty){wrap.innerHTML='<p style="color:var(--muted);font-size:.88rem;padding:2rem 0">No orders yet. When customers pay, they appear here.</p>';return;}
-    const rows=snap.docs.map(doc=>{const o=doc.data(),date=o.createdAt?new Date(o.createdAt.seconds*1000).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}):'—';return`<tr><td>${date}</td><td>${escHtml(o.customerName)}</td><td>${escHtml(o.customerPhone)}</td><td>${escHtml(o.customerEmail)}</td><td>${escHtml(o.itemName)}</td><td>${escHtml(o.size||'—')}</td><td>${o.quantity||1}</td><td>${formatNGN(o.amount)}</td><td><span class="status-badge paid">Paid</span></td></tr>`;}).join('');
-    wrap.innerHTML=`<div style="overflow-x:auto"><table class="orders-table"><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Email</th><th>Item</th><th>Size</th><th>Qty</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    const cards=snap.docs.map(doc=>{
+      const o=doc.data();
+      const date=o.createdAt?new Date(o.createdAt.seconds*1000).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const photo=o.itemPhoto?`<img src="${escHtml(o.itemPhoto)}" alt="${escHtml(o.itemName)}" style="width:80px;height:90px;object-fit:cover;border-radius:2px;flex-shrink:0;">`:`<div style="width:80px;height:90px;background:var(--border);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--muted);">No photo</div>`;
+      return `<div style="display:flex;gap:1rem;padding:1.2rem;border:1px solid var(--border);border-radius:2px;margin-bottom:.8rem;background:var(--warm-white);">
+        ${photo}
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem;">
+            <span style="font-family:var(--fd);font-size:1rem;font-weight:600;color:var(--charcoal);">${escHtml(o.itemName||'—')}</span>
+            <span class="status-badge paid" style="flex-shrink:0;margin-left:.5rem;">Paid</span>
+          </div>
+          <div style="display:flex;gap:.8rem;flex-wrap:wrap;margin-bottom:.5rem;">
+            <span style="font-size:.72rem;color:var(--muted);"><b style="color:var(--charcoal);">Size:</b> ${escHtml(o.size||'—')}</span>
+            <span style="font-size:.72rem;color:var(--muted);"><b style="color:var(--charcoal);">Qty:</b> ${o.quantity||1}</span>
+            <span style="font-size:.72rem;color:var(--brown);font-weight:600;">${formatNGN(o.amount)}</span>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:.5rem;margin-top:.3rem;">
+            <p style="font-size:.72rem;color:var(--charcoal);margin-bottom:.15rem;"><b>${escHtml(o.customerName||'—')}</b></p>
+            <p style="font-size:.68rem;color:var(--muted);margin-bottom:.1rem;">${escHtml(o.customerPhone||'—')}</p>
+            <p style="font-size:.68rem;color:var(--muted);margin-bottom:.1rem;">${escHtml(o.customerEmail||'—')}</p>
+            <p style="font-size:.68rem;color:var(--muted);margin-bottom:.1rem;">📍 ${escHtml(o.deliveryAddress||'—')}</p>
+            <p style="font-size:.65rem;color:var(--muted);margin-top:.3rem;">${date}</p>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML=`<div>${cards}</div>`;
   } catch(e){wrap.innerHTML='<p style="color:var(--error);font-size:.88rem">Could not load orders.</p>';}
 }
 
