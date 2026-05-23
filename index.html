@@ -362,7 +362,7 @@
     .order-qty-row { display: flex; justify-content: space-between; font-size: .82rem; margin-bottom: .5rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
     .order-qty-label { color: var(--muted); }
   </style>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script src="https://js.paystack.co/v2/inline.js"></script>
 </head>
 <body>
 
@@ -835,24 +835,26 @@ function initiatePayment() {
   const name=document.getElementById('co-name').value.trim(), email=document.getElementById('co-email').value.trim(), phone=document.getElementById('co-phone').value.trim(), address=document.getElementById('co-address').value.trim(), size=document.getElementById('co-size').value;
   if (!name||!email||!phone||!address||!size) { toast('Please fill in all fields including your size.','error'); return; }
   if (!email.includes('@')) { toast('Please enter a valid email.','error'); return; }
-  if (typeof PaystackPop === 'undefined') {
-    toast('Payment system is loading, retrying...', 'error');
-    setTimeout(function(){ initiatePayment(); }, 2000);
-    return;
-  }
   const btn=document.getElementById('pay-btn'); btn.disabled=true; btn.innerHTML='<div class="loader loader-sm" style="margin:0 auto"></div>';
-  try {
-    const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:currentItem.price*currentQty*100, currency:'NGN', ref:'MCT-'+Date.now(),
-      metadata:{custom_fields:[{display_name:'Customer Name',variable_name:'customer_name',value:name},{display_name:'Phone',variable_name:'phone',value:phone},{display_name:'Address',variable_name:'address',value:address},{display_name:'Item',variable_name:'item',value:currentItem.name}]},
-      callback:function(res){btn.disabled=false;btn.textContent='Proceed to Payment';saveOrder(res.reference,name,email,phone,address,size);},
-      onClose:function(){btn.disabled=false;btn.textContent='Proceed to Payment';}
-    });
-    handler.openIframe();
-  } catch(e) {
-    btn.disabled=false; btn.textContent='Proceed to Payment';
-    toast('Payment could not open. Please check your connection and try again.','error');
-    console.error('Paystack error:', e);
+  function tryOpen() {
+    if (typeof PaystackPop === 'undefined') {
+      setTimeout(tryOpen, 300);
+      return;
+    }
+    try {
+      const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:currentItem.price*currentQty*100, currency:'NGN', ref:'MCT-'+Date.now(),
+        metadata:{custom_fields:[{display_name:'Customer Name',variable_name:'customer_name',value:name},{display_name:'Phone',variable_name:'phone',value:phone},{display_name:'Address',variable_name:'address',value:address},{display_name:'Item',variable_name:'item',value:currentItem.name}]},
+        callback:function(res){btn.disabled=false;btn.textContent='Proceed to Payment';saveOrder(res.reference,name,email,phone,address,size);},
+        onClose:function(){btn.disabled=false;btn.textContent='Proceed to Payment';}
+      });
+      handler.openIframe();
+    } catch(e) {
+      btn.disabled=false; btn.textContent='Proceed to Payment';
+      toast('Payment could not open. Please try again.','error');
+      console.error('Paystack error:', e);
+    }
   }
+  setTimeout(tryOpen, 400);
 }
 async function saveOrder(ref,name,email,phone,address,size) {
   try {
