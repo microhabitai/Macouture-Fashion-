@@ -495,6 +495,7 @@
       <h1 class="detail-name" id="detail-name"></h1>
       <p class="detail-price" id="detail-price"></p>
       <p class="detail-desc" id="detail-desc"></p>
+      <p id="detail-sizes-note" style="display:none;font-size:.75rem;color:var(--brown);font-weight:500;margin-top:-.8rem;margin-bottom:1.2rem;letter-spacing:.03em;"></p>
       <button class="btn-ghost" onclick="document.getElementById('size-guide-modal').style.display='flex'" style="margin-bottom:1.2rem;font-size:.75rem;">📏 Size Chart</button>
       <hr class="detail-divider"><div class="qty-wrap">
         <span class="qty-label">Quantity</span>
@@ -797,6 +798,13 @@ async function openItem(id, pushHistory=true) {
   document.getElementById('detail-name').textContent = item.name;
   document.getElementById('detail-price').textContent = formatNGN(item.price);
   document.getElementById('detail-desc').textContent = item.description||'A beautiful ready-to-wear piece from Macouture Fashion House.';
+  var sizesNote = document.getElementById('detail-sizes-note');
+  if (item.availSizes && item.availSizes.length > 0) {
+    sizesNote.textContent = 'Available in sizes: ' + item.availSizes.join(', ');
+    sizesNote.style.display = 'block';
+  } else {
+    sizesNote.style.display = 'none';
+  }
   const photos = [item.mainPhoto,...(item.extraPhotos||[])];
   document.getElementById('detail-thumbs').innerHTML = photos.map((p,i)=>`<div class="thumb-item ${i===0?'active':''}" onclick="switchThumb(this,'${p}')"><img src="${p}" alt=""></div>`).join('');
   showPage('item', pushHistory);
