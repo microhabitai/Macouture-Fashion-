@@ -524,7 +524,7 @@
       <div class="form-group"><label>Email Address *</label><input type="email" id="co-email" placeholder="your@email.com"></div>
       <div class="form-group"><label>Phone Number *</label><input type="tel" id="co-phone" placeholder="+234 800 000 0000"></div>
       <div class="form-group"><label>Delivery Address *</label><textarea id="co-address" placeholder="Full delivery address — street, city, state"></textarea></div>
-      <div class="form-group"><label>Size *</label><select id="co-size"><option value="">— Select your size —</option><option value="6">6</option><option value="8">8</option><option value="10">10</option><option value="12">12</option><option value="14">14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option><option value="22">22</option><option value="24">24</option></select></div>
+      <div class="form-group"><label>Size *</label><select id="co-size"><option value="">— Select your size —</option></select><span id="size-surcharge-note" style="display:none;font-size:.72rem;color:var(--brown);margin-top:.3rem;font-weight:500;"></span></div>
       <button class="btn-primary" id="pay-btn" onclick="initiatePayment()" style="width:100%">Proceed to Payment</button>
       <p class="checkout-secure">🔒 Secured by Paystack · Your information is safe</p>
     </div>
@@ -628,6 +628,7 @@
             <div class="form-group"><label>Item Name *</label><input type="text" id="up-name" placeholder="e.g. Midnight Satin Gown"></div>
             <div class="form-group"><label>Price (₦) *</label><input type="number" id="up-price" placeholder="e.g. 45000"></div>
             <div class="form-group"><label>Stock Quantity *</label><input type="number" id="up-stock" placeholder="e.g. 10" min="1"></div>
+            <div class="form-group"><label>Available Sizes</label><input type="text" id="up-sizes" placeholder="e.g. 6, 8, 10, 12 — leave blank for all sizes"></div>
             <div class="form-group"><label>Description</label><textarea id="up-desc" placeholder="Brief description of the piece..."></textarea></div>
             <div class="upload-progress" id="up-progress">
               <p class="progress-text" id="up-progress-text">Uploading...</p>
@@ -836,14 +837,38 @@ function updateQtyDisplay() {
   if (totalDisplay && currentItem) totalDisplay.textContent = formatNGN(currentItem.price * currentQty);
 }
 
+var SIZE_SURCHARGE = 3000;
+var SURCHARGE_SIZES = ['18','20','22','24'];
+function getSizePrice() {
+  var size = document.getElementById('co-size').value;
+  return SURCHARGE_SIZES.includes(size) ? SIZE_SURCHARGE : 0;
+}
+function updateCheckoutTotal() {
+  if (!currentItem) return;
+  var base = currentItem.price * currentQty;
+  var extra = getSizePrice();
+  document.getElementById('co-total').textContent = formatNGN(base + extra);
+  var surchargeEl = document.getElementById('size-surcharge-note');
+  if (surchargeEl) {
+    surchargeEl.textContent = extra > 0 ? '+ ₦3,000 for size ' + document.getElementById('co-size').value : '';
+    surchargeEl.style.display = extra > 0 ? 'block' : 'none';
+  }
+}
 function goCheckout() {
   if (!currentItem) return;
   document.getElementById('co-img').src = currentItem.mainPhoto;
   document.getElementById('co-name-display').textContent = currentItem.name;
   document.getElementById('co-price-display').textContent = formatNGN(currentItem.price);
   document.getElementById('co-qty-display').textContent = currentQty + (currentQty === 1 ? ' piece' : ' pieces');
+  // Populate size dropdown based on item's availSizes
+  var allSizes = ['6','8','10','12','14','16','18','20','22','24'];
+  var avail = (currentItem.availSizes && currentItem.availSizes.length > 0) ? currentItem.availSizes : allSizes;
+  var sizeSelect = document.getElementById('co-size');
+  sizeSelect.innerHTML = '<option value="">— Select your size —</option>';
+  avail.forEach(function(s){ sizeSelect.innerHTML += '<option value="'+s+'">'+s+(SURCHARGE_SIZES.includes(s)?' (+₦3,000)':'')+'</option>'; });
+  sizeSelect.onchange = updateCheckoutTotal;
   document.getElementById('co-total').textContent = formatNGN(currentItem.price * currentQty);
-  ['co-name','co-email','co-phone','co-address'].forEach(id=>document.getElementById(id).value=''); document.getElementById('co-size').value='';
+  ['co-name','co-email','co-phone','co-address'].forEach(id=>document.getElementById(id).value='');
   showPage('checkout');
 }
 function initiatePayment() {
@@ -857,7 +882,7 @@ function initiatePayment() {
       return;
     }
     try {
-      const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:currentItem.price*currentQty*100, currency:'NGN', ref:'MCT-'+Date.now(),
+      const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:(currentItem.price*currentQty+getSizePrice())*100, currency:'NGN', ref:'MCT-'+Date.now(),
         metadata:{custom_fields:[{display_name:'Customer Name',variable_name:'customer_name',value:name},{display_name:'Phone',variable_name:'phone',value:phone},{display_name:'Address',variable_name:'address',value:address},{display_name:'Item',variable_name:'item',value:currentItem.name}]},
         callback:function(res){btn.disabled=false;btn.textContent='Proceed to Payment';saveOrder(res.reference,name,email,phone,address,size);},
         onClose:function(){btn.disabled=false;btn.textContent='Proceed to Payment';}
@@ -900,7 +925,7 @@ async function saveOrder(ref,name,email,phone,address,size) {
       itemPhoto: currentItem.mainPhoto,
       pricePerItem: currentItem.price,
       quantity: currentQty,
-      amount: currentItem.price * currentQty,
+      amount: currentItem.price * currentQty + getSizePrice(), surcharge: getSizePrice(),
       status: 'paid',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -926,7 +951,8 @@ async function saveOrder(ref,name,email,phone,address,size) {
           row('Item', escHtml(currentItem.name)) +
           row('Size', escHtml(size)) +
           row('Qty', currentQty) +
-          row('Amount', formatNGN(currentItem.price * currentQty)) +
+          (getSizePrice()>0?row('Size Surcharge','+'+formatNGN(getSizePrice())):'') +
+          row('Total', formatNGN(currentItem.price * currentQty + getSizePrice())) +
           row('Name', escHtml(name)) +
           row('Phone', escHtml(phone)) +
           row('Address', escHtml(address)) +
@@ -983,6 +1009,7 @@ function resetUploadForm() {
   document.getElementById('up-price').value = '';
   document.getElementById('up-stock').value = '';
   document.getElementById('up-desc').value = '';
+  document.getElementById('up-sizes').value = '';
   document.getElementById('main-drop').innerHTML = '<div class="upload-placeholder"><span>📷</span><p>Click to upload</p></div>';
   var ep = document.getElementById('extra-preview');
   ep.innerHTML = '';
@@ -1015,7 +1042,8 @@ async function uploadToCloudinary(file, onProgress) {
   });
 }
 async function doUpload() {
-  const name=document.getElementById('up-name').value.trim(), price=document.getElementById('up-price').value.trim(), stock=document.getElementById('up-stock').value.trim(), desc=document.getElementById('up-desc').value.trim();
+  const name=document.getElementById('up-name').value.trim(), price=document.getElementById('up-price').value.trim(), stock=document.getElementById('up-stock').value.trim(), desc=document.getElementById('up-desc').value.trim(), sizesRaw=document.getElementById('up-sizes').value.trim();
+  const availSizes = sizesRaw ? sizesRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
   if (!name||!price||!stock) { toast('Item name, price and stock quantity are required.','error'); return; }
   if (!mainFile) { toast('Please select a main photo.','error'); return; }
   const btn=document.getElementById('up-btn'), progress=document.getElementById('up-progress'), fill=document.getElementById('up-progress-fill'), txt=document.getElementById('up-progress-text');
