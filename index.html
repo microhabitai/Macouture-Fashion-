@@ -834,14 +834,14 @@ function updateQtyDisplay() {
   var qtyDisplay = document.getElementById('co-qty-display');
   var totalDisplay = document.getElementById('co-total');
   if (qtyDisplay) qtyDisplay.textContent = currentQty + (currentQty === 1 ? ' piece' : ' pieces');
-  if (totalDisplay && currentItem) totalDisplay.textContent = formatNGN(currentItem.price * currentQty);
+  if (totalDisplay && currentItem) totalDisplay.textContent = formatNGN(currentItem.price * currentQty + getSizePrice());
 }
 
 var SIZE_SURCHARGE = 3000;
 var SURCHARGE_SIZES = ['18','20','22','24'];
 function getSizePrice() {
   var size = document.getElementById('co-size').value;
-  return SURCHARGE_SIZES.includes(size) ? SIZE_SURCHARGE : 0;
+  return SURCHARGE_SIZES.includes(size) ? SIZE_SURCHARGE * currentQty : 0;
 }
 function updateCheckoutTotal() {
   if (!currentItem) return;
