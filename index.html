@@ -278,6 +278,7 @@
     .orders-table tr:hover td { background: var(--cream); }
     .status-badge { display: inline-block; padding: .2rem .7rem; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; border-radius: 20px; }
     .status-badge.paid { background: rgba(45,122,79,.1); color: var(--success); }
+    .status-badge.fulfilled { background: rgba(100,100,100,.1); color: var(--muted); }
     .admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2.5rem; }
     .admin-stat { background: var(--cream); border: 1.5px solid var(--border); padding: 1.4rem; border-radius: 2px; }
     .admin-stat-label { font-size: .62rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: .4rem; }
@@ -1215,6 +1216,13 @@ async function saveEdit() {
   if (!name||!price){toast('Name and price required.','error');return;}
   try{var editStock=parseInt(document.getElementById('edit-stock').value)||0; var editSizesRaw=document.getElementById('edit-sizes').value.trim(); var editAvailSizes=editSizesRaw?editSizesRaw.split(',').map(function(s){return s.trim();}).filter(Boolean):[]; await db.collection('items').doc(id).update({name:name,price:Number(price),stock:editStock,description:desc,availSizes:editAvailSizes});toast('Item updated ✓');closeEdit();loadAdminItems();}catch(e){toast('Update failed.','error');}
 }
+async function markFulfilled(orderId) {
+  try {
+    await db.collection('orders').doc(orderId).update({ fulfilled: true });
+    toast('Order marked as fulfilled ✓');
+    loadOrders();
+  } catch(e) { toast('Could not update order.', 'error'); }
+}
 async function loadOrders() {
   const wrap=document.getElementById('orders-wrap'); wrap.innerHTML='<div class="full-loader"><div class="loader"></div></div>';
   try {
@@ -1227,12 +1235,19 @@ async function loadOrders() {
       const o=doc.data();
       var _d=o.createdAt?new Date(o.createdAt.seconds*1000):null; const date=_d?_d.toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})+'<br><span style="font-size:.65rem;color:var(--muted)">'+_d.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'})+'</span>':'—';
       const photo=o.itemPhoto?`<img src="${escHtml(o.itemPhoto)}" alt="${escHtml(o.itemName)}" style="width:80px;height:90px;object-fit:cover;border-radius:2px;flex-shrink:0;">`:`<div style="width:80px;height:90px;background:var(--border);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--muted);">No photo</div>`;
-      return `<div style="display:flex;gap:1rem;padding:1.2rem;border:1px solid var(--border);border-radius:2px;margin-bottom:.8rem;background:var(--warm-white);">
+      const isFulfilled = o.fulfilled === true;
+      const statusBadge = isFulfilled
+        ? `<span class="status-badge fulfilled" style="flex-shrink:0;margin-left:.5rem;">Fulfilled</span>`
+        : `<span class="status-badge paid" style="flex-shrink:0;margin-left:.5rem;">Paid</span>`;
+      const fulfillBtn = isFulfilled
+        ? `<p style="font-size:.65rem;color:var(--muted);margin-top:.4rem;">✓ Delivered</p>`
+        : `<button onclick="markFulfilled('${doc.id}')" style="margin-top:.5rem;font-size:.68rem;padding:.3rem .8rem;border:1.5px solid var(--charcoal);background:none;border-radius:2px;cursor:pointer;color:var(--charcoal);letter-spacing:.05em;">Mark as Fulfilled</button>`;
+      return `<div style="display:flex;gap:1rem;padding:1.2rem;border:1px solid ${isFulfilled?'#ddd':' var(--border)'};border-radius:2px;margin-bottom:.8rem;background:${isFulfilled?'#f9f9f9':'var(--warm-white)'};opacity:${isFulfilled?'.7':'1'};">
         ${photo}
         <div style="flex:1;min-width:0;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem;">
             <span style="font-family:var(--fd);font-size:1rem;font-weight:600;color:var(--charcoal);">${escHtml(o.itemName||'—')}</span>
-            <span class="status-badge paid" style="flex-shrink:0;margin-left:.5rem;">Paid</span>
+            ${statusBadge}
           </div>
           <div style="display:flex;gap:.8rem;flex-wrap:wrap;margin-bottom:.5rem;">
             <span style="font-size:.72rem;color:var(--muted);"><b style="color:var(--charcoal);">Size:</b> ${escHtml(o.size||'—')}</span>
@@ -1245,6 +1260,7 @@ async function loadOrders() {
             <p style="font-size:.68rem;color:var(--muted);margin-bottom:.1rem;">${escHtml(o.customerEmail||'—')}</p>
             <p style="font-size:.68rem;color:var(--muted);margin-bottom:.1rem;">📍 ${escHtml(o.deliveryAddress||'—')}</p>
             <p style="font-size:.65rem;color:var(--muted);margin-top:.3rem;">${date}</p>
+            ${fulfillBtn}
           </div>
         </div>
       </div>`;
