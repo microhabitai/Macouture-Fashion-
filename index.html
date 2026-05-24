@@ -664,6 +664,7 @@
     <div class="form-group"><label>Item Name</label><input type="text" id="edit-name"></div>
     <div class="form-group"><label>Price (₦)</label><input type="number" id="edit-price"></div>
     <div class="form-group"><label>Stock Quantity</label><input type="number" id="edit-stock" min="0"></div>
+    <div class="form-group"><label>Available Sizes</label><input type="text" id="edit-sizes" placeholder="e.g. 6, 8, 10, 12 — leave blank for all sizes"></div>
     <div class="form-group"><label>Description</label><textarea id="edit-desc"></textarea></div>
     <div class="modal-actions">
       <button class="btn-gold" onclick="saveEdit()" style="flex:1">Save Changes</button>
@@ -1116,7 +1117,7 @@ async function loadAdminItems() {
       editBtn.className = 'btn-sm-edit';
       editBtn.textContent = 'Edit';
       (function(id, name, price, desc) {
-        editBtn.onclick = function() { openEdit(id, name, price, desc, d.stock || 0); };
+        editBtn.onclick = function() { openEdit(id, name, price, desc, d.stock || 0, d.availSizes || []); };
       })(doc.id, d.name || '', d.price || 0, d.description || '');
       var delBtn = document.createElement('button');
       delBtn.className = 'btn-sm-del';
@@ -1151,12 +1152,12 @@ async function deleteItem(id, name) {
     toast('Could not delete item. Please try again.', 'error');
   }
 }
-function openEdit(id,name,price,desc) { document.getElementById('edit-id').value=id; document.getElementById('edit-name').value=name; document.getElementById('edit-price').value=price; document.getElementById('edit-desc').value=desc; document.getElementById('edit-modal').classList.add('open'); }
+function openEdit(id,name,price,desc,stock,availSizes) { document.getElementById('edit-id').value=id; document.getElementById('edit-name').value=name; document.getElementById('edit-price').value=price; document.getElementById('edit-stock').value=stock||0; document.getElementById('edit-desc').value=desc; document.getElementById('edit-sizes').value=(availSizes&&availSizes.length)?availSizes.join(', '):''; document.getElementById('edit-modal').classList.add('open'); }
 function closeEdit() { document.getElementById('edit-modal').classList.remove('open'); }
 async function saveEdit() {
   const id=document.getElementById('edit-id').value, name=document.getElementById('edit-name').value.trim(), price=document.getElementById('edit-price').value.trim(), desc=document.getElementById('edit-desc').value.trim();
   if (!name||!price){toast('Name and price required.','error');return;}
-  try{var editStock=parseInt(document.getElementById('edit-stock').value)||0; await db.collection('items').doc(id).update({name:name,price:Number(price),stock:editStock,description:desc});toast('Item updated ✓');closeEdit();loadAdminItems();}catch(e){toast('Update failed.','error');}
+  try{var editStock=parseInt(document.getElementById('edit-stock').value)||0; var editSizesRaw=document.getElementById('edit-sizes').value.trim(); var editAvailSizes=editSizesRaw?editSizesRaw.split(',').map(function(s){return s.trim();}).filter(Boolean):[]; await db.collection('items').doc(id).update({name:name,price:Number(price),stock:editStock,description:desc,availSizes:editAvailSizes});toast('Item updated ✓');closeEdit();loadAdminItems();}catch(e){toast('Update failed.','error');}
 }
 async function loadOrders() {
   const wrap=document.getElementById('orders-wrap'); wrap.innerHTML='<div class="full-loader"><div class="loader"></div></div>';
