@@ -692,7 +692,7 @@ try {
 } catch(e) {
   console.error('Firebase init error:', e);
 }
-let allItems = [], currentItem = null, mainFile = null, extraFiles = [];
+let allItems = [], currentItem = null, currentQty = 1, mainFile = null, extraFiles = [];
 const IS_DEMO = FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY';
 
 function comingSoonHTML() {
@@ -791,7 +791,7 @@ function filterItems(q) {
 async function openItem(id, pushHistory=true) {
   let item = allItems.find(i=>i.id===id);
   if (!item) { try { const d=await db.collection('items').doc(id).get(); if(!d.exists)return; item={id:d.id,...d.data()}; } catch(e){return;} }
-  currentItem = item;
+  currentItem = item; currentQty = 1; var qInput = document.getElementById('qty-input'); if(qInput) qInput.value = 1;
   document.getElementById('detail-main-img').src = item.mainPhoto;
   document.getElementById('detail-name').textContent = item.name;
   document.getElementById('detail-price').textContent = formatNGN(item.price);
