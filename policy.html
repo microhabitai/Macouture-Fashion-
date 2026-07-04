@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refund & Shipping Policy | Macouture Fashion House</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --cream: #f5f0e8; --warm-white: #faf8f4; --charcoal: #1a1814;
+      --brown: #6b4c2a; --gold: #c9a84c; --muted: #7a7268;
+      --border: #e2dbd0;
+      --fd: 'Playfair Display', serif; --fb: 'DM Sans', sans-serif;
+    }
+    body { font-family: var(--fb); background: var(--warm-white); color: var(--charcoal); }
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      background: rgba(250,248,244,0.94); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { font-family: var(--fd); font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; line-height: 1.2; }
+    .nav-brand span { display: block; font-size: .6rem; font-weight: 400; letter-spacing: .22em; font-family: var(--fb); color: var(--muted); text-transform: uppercase; }
+    .nav-back { font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 500;
+      background: var(--charcoal); color: var(--warm-white); padding: .6rem 1.4rem; border-radius: 2px; transition: background .25s; }
+    .nav-back:hover { background: var(--brown); }
+
+    /* CONTENT */
+    .policy-wrap { max-width: 720px; margin: 0 auto; padding: 7rem 2rem 5rem; }
+    .policy-header { margin-bottom: 3rem; border-bottom: 1px solid var(--border); padding-bottom: 2rem; }
+    .section-label { font-size: .72rem; letter-spacing: .25em; text-transform: uppercase; color: var(--gold); font-weight: 500; margin-bottom: .6rem; display: flex; align-items: center; gap: .7rem; }
+    .section-label::before { content: ''; width: 1.5rem; height: 1px; background: var(--gold); flex-shrink: 0; }
+    .policy-header h1 { font-family: var(--fd); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; margin-top: .6rem; }
+    .policy-section { margin-bottom: 2.5rem; }
+    .policy-section h2 { font-family: var(--fd); font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; color: var(--charcoal); }
+    .policy-section p, .policy-section li { font-size: .92rem; color: var(--muted); line-height: 1.9; margin-bottom: .6rem; }
+    .policy-section ul { padding-left: 1.2rem; }
+    .policy-section li { list-style: disc; }
+    .policy-divider { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+    .policy-contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    .policy-contact-item { background: var(--cream); border: 1.5px solid var(--border); padding: 1.2rem; border-radius: 2px; }
+    .policy-contact-label { font-size: .62rem; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 500; margin-bottom: .3rem; }
+    .policy-contact-value { font-size: .88rem; color: var(--charcoal); font-weight: 500; }
+    .btn-outline { display: inline-block; border: 1.5px solid var(--charcoal); color: var(--charcoal); padding: .85rem 2rem; font-size: .82rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 500; border-radius: 2px; cursor: pointer; transition: border-color .25s, color .25s; }
+    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* FOOTER */
+    footer { background: var(--charcoal); border-top: 1px solid rgba(255,255,255,.07); padding: 2rem 2.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      color: rgba(250,248,244,.4); font-size: .75rem; letter-spacing: .05em; }
+    .footer-brand { font-family: var(--fd); color: var(--warm-white); font-size: .95rem; }
+    .footer-treaz { font-size: .6rem; color: rgba(250,248,244,.35); letter-spacing: .1em; text-transform: uppercase; }
+
+    @media(max-width: 600px) {
+      nav { padding: 1rem 1.2rem; }
+      .policy-contact-grid { grid-template-columns: 1fr; }
+      footer { flex-direction: column; gap: .8rem; text-align: center; padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">Macouture<span>Fashion House</span></div>
+  <a class="nav-back" href="index.html">← Back to Store</a>
+</nav>
+
+<div class="policy-wrap">
+  <div class="policy-header">
+    <div class="section-label">Macouture Fashion House</div>
+    <h1>Refund, Shipping &amp; Contact Policy</h1>
+  </div>
+
+  <div class="policy-section">
+    <h2>Refund &amp; Returns</h2>
+    <p>We take pride in the quality and craftsmanship of every piece we create. If there is an issue with your order, we are here to make it right.</p>
+    <ul>
+      <li>Items may be returned within <strong>3 days</strong> of receiving your order.</li>
+      <li>Returns are accepted only in the case of a <strong>wrong item</strong> being delivered.</li>
+      <li>Once the returned item is received and inspected, a replacement will be processed promptly.</li>
+    </ul>
+    <p style="margin-top:.8rem;">To initiate a return, please contact us via WhatsApp or email within the 3-day window with your order details and a photo of the item received.</p>
+  </div>
+
+  <hr class="policy-divider">
+
+  <div class="policy-section">
+    <h2>Shipping &amp; Delivery</h2>
+    <ul>
+      <li>All orders are processed and dispatched within <strong>2–4 working days</strong> after full payment is confirmed.</li>
+      <li>Estimated delivery time is <strong>2–5 working days</strong> depending on your state.</li>
+      <li>Nationwide 🇳🇬 delivery is available. Worldwide delivery is also available at an extra charge.</li>
+      <li><strong>Full payment validates your order.</strong> Orders are not reserved until payment is complete.</li>
+    </ul>
+  </div>
+
+  <hr class="policy-divider">
+
+  <div class="policy-section">
+    <h2>Contact Us</h2>
+    <p>Have a question or need help with your order? Reach out to us through any of the channels below.</p>
+    <div class="policy-contact-grid">
+      <div class="policy-contact-item">
+        <div class="policy-contact-label">Phone / WhatsApp</div>
+        <div class="policy-contact-value">0912 688 0592</div>
+      </div>
+      <div class="policy-contact-item">
+        <div class="policy-contact-label">Email</div>
+        <div class="policy-contact-value">macouturefashion28@gmail.com</div>
+      </div>
+      <div class="policy-contact-item">
+        <div class="policy-contact-label">Address</div>
+        <div class="policy-contact-value">UTC Junction, Nedus Plaza, First Floor, 1st Store</div>
+      </div>
+      <div class="policy-contact-item">
+        <div class="policy-contact-label">Instagram</div>
+        <div class="policy-contact-value">
+          <a href="https://www.instagram.com/macouturefashionhouse?igsh=MWN3eXRpaTl4eXRydQ==" target="_blank" rel="noopener" style="color:var(--brown);">@macouturefashionhouse</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:3rem;">
+    <a class="btn-outline" href="index.html">← Back to Home</a>
+  </div>
+</div>
+
+<footer>
+  <span class="footer-brand">Macouture</span>
+  <span>© 2026 Macouture Fashion House. All rights reserved.</span>
+  <a href="https://www.linkedin.com/in/fancy-treaz-86295325b" target="_blank" rel="noopener" class="footer-treaz">Designed &amp; built by Treaz</a>
+</footer>
+
+</body>
+</html>
