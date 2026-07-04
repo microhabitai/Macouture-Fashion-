@@ -1312,10 +1312,18 @@ try {
   }
 } catch(e) { console.error('Auth error:', e); }
 
-// Set initial history state
-if (!history.state) {
-  history.replaceState({ page: 'home', itemId: null }, '', '#home');
-}
+// Set initial history state or navigate to hash on load
+(function() {
+  var hash = window.location.hash.replace('#', '');
+  var validPages = ['home', 'collections', 'policy'];
+  if (hash && validPages.includes(hash)) {
+    showPage(hash, false);
+  } else {
+    if (!history.state) {
+      history.replaceState({ page: 'home', itemId: null }, '', '#home');
+    }
+  }
+})();
 </script>
 
 <!-- POLICY PAGE -->
