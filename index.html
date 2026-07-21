@@ -692,7 +692,8 @@
 
 <script>
 const FIREBASE_CONFIG = { apiKey:"AIzaSyBHj1O7hvCmS3DYbl54Q7B3rFVbyfukQlA", authDomain:"macouture-fashion.firebaseapp.com", projectId:"macouture-fashion", storageBucket:"macouture-fashion.firebasestorage.app", messagingSenderId:"502937686499", appId:"1:502937686499:web:916df3a3facc66384850d6" };
-const PAYSTACK_KEY         = "pk_test_4217c68b64e18c413b853a0aefbae01e695b646a";
+const PAYSTACK_KEY         = "pk_live_eabdf7677ea950606a8131867f93a3ad3fae5e4d";
+const VERIFY_WORKER_URL    = "https://macouturefashion.fancytreaz.workers.dev";
 const CLOUDINARY_CLOUD_NAME  = "dumatsfyt";
 const CLOUDINARY_UPLOAD_PRESET = "macouture_uploads";
 const WHATSAPP_NUMBER = "2349126880592";
@@ -904,7 +905,29 @@ function initiatePayment() {
     try {
       const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:(currentItem.price*currentQty+getSizePrice())*100, currency:'NGN', ref:'MCT-'+Date.now(),
         metadata:{custom_fields:[{display_name:'Customer Name',variable_name:'customer_name',value:name},{display_name:'Phone',variable_name:'phone',value:phone},{display_name:'Address',variable_name:'address',value:address},{display_name:'Item',variable_name:'item',value:currentItem.name}]},
-        callback:function(res){btn.disabled=false;btn.textContent='Proceed to Payment';saveOrder(res.reference,name,email,phone,address,size);},
+        callback:function(res){
+          btn.textContent='Verifying payment...';
+          const expectedAmount = (currentItem.price*currentQty+getSizePrice())*100;
+          fetch(VERIFY_WORKER_URL, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ reference: res.reference, expectedAmount })
+          })
+          .then(r=>r.json())
+          .then(result=>{
+            btn.disabled=false; btn.textContent='Proceed to Payment';
+            if (result.verified) {
+              saveOrder(res.reference,name,email,phone,address,size);
+            } else {
+              toast('Payment could not be verified. If you were charged, contact us with your reference: '+res.reference,'error');
+            }
+          })
+          .catch(err=>{
+            btn.disabled=false; btn.textContent='Proceed to Payment';
+            console.error('Verification error:', err);
+            toast('Could not verify payment right now. If you were charged, contact us with your reference: '+res.reference,'error');
+          });
+        },
         onClose:function(){btn.disabled=false;btn.textContent='Proceed to Payment';}
       });
       handler.openIframe();
