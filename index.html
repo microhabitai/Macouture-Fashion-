@@ -731,9 +731,10 @@ function showPage(id, pushState=true) {
   if (id==='collections') loadCollections();
   if (id==='admin-dashboard') { loadAdminItems(); loadOrders(); handleAdminNavVisibility(); }
   // Push to browser history so back button works
-  const noHistory = ['admin-login','admin-dashboard','checkout','success'];
+  const noHistory = ['admin-login','admin-dashboard','success'];
   if (pushState && !noHistory.includes(id)) {
-    history.pushState({ page: id, itemId: currentItem ? currentItem.id : null }, '', '#' + id);
+    const hashId = (id === 'item' || id === 'checkout') && currentItem ? id + '-' + currentItem.id : id;
+    history.pushState({ page: id, itemId: currentItem ? currentItem.id : null }, '', '#' + hashId);
   }
 }
 
@@ -745,6 +746,11 @@ window.addEventListener('popstate', function(e) {
       // Re-open the item without pushing new history
       db.collection('items').doc(e.state.itemId).get().then(doc => {
         if (doc.exists) { openItem(doc.id, false); }
+        else { showPage('collections', false); }
+      }).catch(() => showPage('collections', false));
+    } else if (pg === 'checkout' && e.state.itemId) {
+      db.collection('items').doc(e.state.itemId).get().then(doc => {
+        if (doc.exists) { openItem(doc.id, false); goCheckout(); history.replaceState({ page:'checkout', itemId: doc.id }, '', '#checkout-'+doc.id); }
         else { showPage('collections', false); }
       }).catch(() => showPage('collections', false));
     } else {
@@ -904,7 +910,12 @@ function initiatePayment() {
     }
     try {
       const handler = PaystackPop.setup({ key:PAYSTACK_KEY, email, amount:(currentItem.price*currentQty+getSizePrice())*100, currency:'NGN', ref:'MCT-'+Date.now(),
-        metadata:{custom_fields:[{display_name:'Customer Name',variable_name:'customer_name',value:name},{display_name:'Phone',variable_name:'phone',value:phone},{display_name:'Address',variable_name:'address',value:address},{display_name:'Item',variable_name:'item',value:currentItem.name}]},
+        metadata:{
+          customerName:name, customerPhone:phone, deliveryAddress:address, size:size,
+          itemId:currentItem.id, itemName:currentItem.name, itemPhoto:currentItem.mainPhoto,
+          pricePerItem:currentItem.price, quantity:currentQty, surcharge:getSizePrice(),
+          custom_fields:[{display_name:'Customer Name',variable_name:'customer_name',value:name},{display_name:'Phone',variable_name:'phone',value:phone},{display_name:'Address',variable_name:'address',value:address},{display_name:'Item',variable_name:'item',value:currentItem.name}]
+        },
         callback:function(res){
           btn.textContent='Verifying payment...';
           const expectedAmount = (currentItem.price*currentQty+getSizePrice())*100;
@@ -1325,6 +1336,18 @@ try {
   var validPages = ['home', 'collections', 'policy'];
   if (hash && validPages.includes(hash)) {
     showPage(hash, false);
+  } else if (hash.indexOf('item-') === 0) {
+    var itemId = hash.slice('item-'.length);
+    db.collection('items').doc(itemId).get().then(function(doc) {
+      if (doc.exists) { openItem(doc.id, false); }
+      else { showPage('home', false); }
+    }).catch(function(){ showPage('home', false); });
+  } else if (hash.indexOf('checkout-') === 0) {
+    var coItemId = hash.slice('checkout-'.length);
+    db.collection('items').doc(coItemId).get().then(function(doc) {
+      if (doc.exists) { openItem(doc.id, false); goCheckout(); }
+      else { showPage('home', false); }
+    }).catch(function(){ showPage('home', false); });
   } else {
     if (!history.state) {
       history.replaceState({ page: 'home', itemId: null }, '', '#home');
